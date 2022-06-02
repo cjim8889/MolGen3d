@@ -40,6 +40,12 @@ class CoorExp:
                     self.optimiser.zero_grad()
 
                     z, log_det = self.network(input)
+
+                    if not torch.all(torch.isreal(z)):
+                        print(z)
+                        print(log_det)
+
+
                     log_prob = torch.sum(self.base.log_prob(z), dim=[1, 2])
 
                     loss = argmax_criterion(log_prob, log_det)
