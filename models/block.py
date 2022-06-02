@@ -15,7 +15,7 @@ class ARNet(nn.Module):
 
     def forward(self, x):
 
-        feats = torch.zeros(x.shape[0], x.shape[1], 6)
+        feats = torch.zeros(x.shape[0], x.shape[1], 6, device=x.device)
         coors = x
 
         for net in self.net:
