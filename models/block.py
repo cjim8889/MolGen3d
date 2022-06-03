@@ -11,7 +11,7 @@ class ARNet(nn.Module):
     def __init__(self, hidden_dim=128, gnn_size=2):
         super().__init__()
 
-        self.net = nn.ModuleList([EGNN(dim=6, m_dim=hidden_dim, norm_coors=True) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([EGNN(dim=6, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=1.) for _ in range(gnn_size)])
 
     def forward(self, x, mask=None):
         feats = x.repeat(1, 1, 2)
