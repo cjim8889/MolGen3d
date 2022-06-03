@@ -47,9 +47,10 @@ if __name__ == "__main__":
 
     batch = next(iter(train_loader))
 
-    mol = batch.pos
+    print(batch.mask)
+    # mol = batch.pos
 
-    print(mol[0])
+    # print(mol[0])
     # xs = mol[:, 0]
     # ys = mol[:, 1]
     # zs = mol[:, 2]
