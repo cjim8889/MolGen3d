@@ -11,6 +11,7 @@ parser.add_argument("--batch_size", help="Batch size", type=int, default=128)
 parser.add_argument("--hidden_dim", help="Hidden dimension", type=int, default=64)
 parser.add_argument("--block_size", help="Block length t parameter", type=int, default=12)
 parser.add_argument("--gnn_size", help="Gnn size", type=int, default=2)
+parser.add_argument("--base", help="Base distribution", type=str, default="standard")
 
 parser.add_argument("--optimiser", help="Optimiser", type=str, default="Adam")
 parser.add_argument("--lr", help="Learning rate", type=float, default=1e-03)
@@ -51,7 +52,8 @@ if __name__ == "__main__":
             upload_interval=args.upload_interval,
             hidden_dim=args.hidden_dim,
             block_size=args.block_size,
-            gnn_size=args.gnn_size
+            gnn_size=args.gnn_size,
+            base=args.base
         )
 
         exp = CoorExp(config=config)

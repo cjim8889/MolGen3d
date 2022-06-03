@@ -1,12 +1,37 @@
+from os import remove
 from .dataset import get_datasets
 from models import CoorFlow
 from .utils import create_model, argmax_criterion
-
+from survae.utils import sum_except_batch
 
 import wandb
 import torch
+import numpy as np
 from torch import nn
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+@torch.jit.script
+def remove_mean(x):
+    mean = torch.mean(x, dim=1, keepdim=True)
+    x = x - mean
+    return x
+
+def center_gravity_zero_gaussian_log_likelihood(x):
+    assert len(x.size()) == 3
+    B, N, D = x.size()
+
+    # r is invariant to a basis change in the relevant hyperplane.
+    r2 = sum_except_batch(x.pow(2))
+
+    # The relevant hyperplane is (N-1) * D dimensional.
+    degrees_of_freedom = (N-1) * D
+
+    # Normalizing constant and logpx are computed:
+    log_normalizing_constant = -0.5 * degrees_of_freedom * np.log(2*np.pi)
+    log_px = -0.5 * r2 + log_normalizing_constant
+
+    return log_px
+
 
 class CoorExp:
     def __init__(self, config) -> None:
@@ -16,6 +41,9 @@ class CoorExp:
 
         if "hidden_dim" not in self.config:
             self.config['hidden_dim'] = 128
+
+        if "base" not in self.config:
+            self.config['base'] = "standard"
 
         self.batch_size = self.config["batch_size"] if "batch_size" in self.config else 128
         self.train_loader, self.test_loader = get_datasets(type="mqm9", batch_size=self.batch_size)
@@ -41,12 +69,13 @@ class CoorExp:
 
                     z, log_det = self.network(input)
 
-                    if not torch.all(torch.isreal(z)):
-                        print(z)
-                        print(log_det)
+                    log_prob = None
 
-
-                    log_prob = torch.sum(self.base.log_prob(z), dim=[1, 2])
+                    if self.config['base'] == "invariant":
+                        zero_mean_z = remove_mean(z)
+                        log_prob = sum_except_batch(center_gravity_zero_gaussian_log_likelihood(zero_mean_z))
+                    else:
+                        log_prob = sum_except_batch(self.base.log_prob(z))
 
                     loss = argmax_criterion(log_prob, log_det)
                     loss.backward()
