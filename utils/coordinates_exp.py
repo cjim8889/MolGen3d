@@ -90,6 +90,7 @@ class CoorExp:
                     loss = argmax_criterion(log_prob, log_det)
                     loss.backward()
 
+                    nn.utils.clip_grad_norm_(self.network.parameters(), 1)
                     self.optimiser.step()
 
                     loss_step += loss
