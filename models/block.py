@@ -1,5 +1,5 @@
 from survae.transforms.bijections import Bijection
-from .utils import create_mask_equivariant
+from .utils import create_mask_equivariant, create_mask_ar
 from .coupling import MaskedCouplingFlow
 from survae.transforms.bijections import ConditionalBijection, Bijection
 
@@ -32,14 +32,14 @@ class AdjacencyBlockFlow(Bijection):
     def __init__(self,
     last_dimension=3,
     ar_net_init=ar_net_init(hidden_dim=32, gnn_size=2),
-    mask_init=create_mask_equivariant):
+    mask_init=create_mask_ar):
         
         super(AdjacencyBlockFlow, self).__init__()
         self.transforms = nn.ModuleList()
 
-        for idx in range(3):
+        for idx in range(3 * 9):
             ar_net = ar_net_init()
-            mask = mask_init(idx, 3)
+            mask = mask_init(idx, (9, 3))
 
             tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
             self.transforms.append(tr)

@@ -1,4 +1,4 @@
-from models import create_mask_equivariant, AdjacencyBlockFlow
+from models import create_mask_equivariant, AdjacencyBlockFlow, create_mask_ar
 from egnn_pytorch import EGNN
 import torch
 from torch import nn
@@ -50,20 +50,15 @@ if __name__ == "__main__":
 
     # net = EGNN(dim=6)
 
-    # net = CoorFlow(hidden_dim=32, gnn_size=1, block_size=4)
+    net = CoorFlow(hidden_dim=32, gnn_size=1, block_size=4)
 
-    # feats = torch.randn(1, 9, 6)
+    feats = torch.randn(1, 9, 6)
     coors = torch.randn(1, 9, 3)
-    mask = torch.ones(1, 9)
+    # mask = create_mask_ar(26, (9, 3))
 
-    mask[:, -1] = 0
 
-    mask = mask.to(torch.bool)
-    
-    print(coors)
-    print(coors * mask.unsqueeze(2))
     # x = remove_mean_with_mask(coors, mask)
     # print(feats)
-    # feats, = net(feats, coors, mask=mask)
+    feats = net(feats)
     # print(feats)
 

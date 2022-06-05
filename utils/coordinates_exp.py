@@ -1,4 +1,3 @@
-from os import remove
 from .dataset import get_datasets
 from models import CoorFlow
 from .utils import create_model, argmax_criterion
