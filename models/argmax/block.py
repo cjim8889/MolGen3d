@@ -8,10 +8,10 @@ from torch import nn
 from egnn_pytorch import EGNN
 
 class ARNet(nn.Module):
-    def __init__(self, hidden_dim=128, gnn_size=2):
+    def __init__(self, hidden_dim=128, gnn_size=2, num_classes=6):
         super().__init__()
 
-        self.net = nn.ModuleList([EGNN(dim=10, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=1., update_coors=False, num_nearest_neighbors=3) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([EGNN(dim=num_classes*2, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=1., update_coors=False, num_nearest_neighbors=3) for _ in range(gnn_size)])
 
     def forward(self, x, context=None, mask=None):
         feats = x.repeat(1, 1, 2)
@@ -22,7 +22,7 @@ class ARNet(nn.Module):
         
         return feats
 
-def ar_net_init(hidden_dim=128, gnn_size=2):
+def ar_net_init(hidden_dim=128, gnn_size=1):
     def _init():
         return ARNet(hidden_dim=hidden_dim, gnn_size=gnn_size)
 
@@ -31,8 +31,8 @@ def ar_net_init(hidden_dim=128, gnn_size=2):
 class ConditionalCouplingBlockFlow(ConditionalBijection):
     def __init__(self,
     max_nodes=9,
-    num_classes=5,
-    ar_net_init=ar_net_init(hidden_dim=64, gnn_size=2),
+    num_classes=6,
+    ar_net_init=ar_net_init(hidden_dim=64, gnn_size=1),
     mask_init=create_mask_ar):
         
         super(ConditionalCouplingBlockFlow, self).__init__()

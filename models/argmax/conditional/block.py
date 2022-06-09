@@ -53,7 +53,7 @@ def ar_net_init(ConditionalARNet, **kwargs):
 class ConditionalAdjacencyBlockFlow(ConditionalBijection):
     def __init__(self, ar_net_init=ar_net_init(ConditionalARNet, hidden_dim=64),
             max_nodes=9,
-            num_classes=5,
+            num_classes=6,
             mask_init=create_mask_ar,
             split_dim=1):
 

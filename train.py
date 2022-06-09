@@ -1,5 +1,5 @@
 import argparse
-from utils import CoorExp
+from utils import CoorExp, VertExp
 import torch
 from torch import nn
 
@@ -57,5 +57,25 @@ if __name__ == "__main__":
         )
 
         exp = CoorExp(config=config)
+    if args.type  == "vert":
+        config = dict(
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            optimiser=args.optimiser,
+            learning_rate=args.lr,
+            weight_decay=args.weight_decay,
+            scheduler=args.scheduler,
+            scheduler_gamma=args.scheduler_gamma,
+            scheduler_step=args.scheduler_step,
+            dataset="MQM9",
+            architecture="Flow",
+            weight_init=weight_init,
+            upload=args.upload,
+            upload_interval=args.upload_interval,
+            hidden_dim=args.hidden_dim,
+            block_size=args.block_size,
+        )
+
+        exp = VertExp(config=config)
 
     exp.train()
