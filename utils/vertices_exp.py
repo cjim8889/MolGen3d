@@ -63,7 +63,6 @@ class VertExp:
                     loss_step += loss
                     loss_ep_train += loss
 
-                    print(loss.item())
                     step += 1
                     if idx % 5 == 0:
                         ll = (loss_step / 5.).item()
