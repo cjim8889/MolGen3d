@@ -1,3 +1,4 @@
+from numpy import block
 from torch import nn
 import torch
 from egnn_pytorch import EGNN
@@ -52,7 +53,7 @@ class AtomFlow(nn.Module):
             ConditionalAdjacencyBlockFlow(
                 max_nodes=9,
                 num_classes=num_classes
-            )
+            ) for _ in range(block_size)
         ]
 
         conditional_flow = ConditionalInverseFlow(
@@ -68,13 +69,10 @@ class AtomFlow(nn.Module):
 
         self.transforms.append(surjection)
 
-        for i in range(block_size):
-            flow = ConditionalCouplingBlockFlow(
+        self.transforms += [ConditionalCouplingBlockFlow(
                 max_nodes=9,
                 num_classes=num_classes
-            )
-
-            self.transforms.append(flow)
+            ) for _ in range(block_size)]
     
     def forward(self, x, context, mask=None):
         log_prob = torch.zeros(x.shape[0], device=x.device)
