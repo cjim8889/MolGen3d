@@ -1,6 +1,6 @@
 from survae.transforms.bijections import Bijection
-from .utils import create_mask_ar
-from .coupling import MaskedCouplingFlow
+from ..utils import create_mask_ar
+from .coupling import MaskedConditionalCouplingFlow
 from survae.transforms.bijections import ConditionalBijection, Bijection
 
 import torch
@@ -11,11 +11,11 @@ class ARNet(nn.Module):
     def __init__(self, hidden_dim=128, gnn_size=2):
         super().__init__()
 
-        self.net = nn.ModuleList([EGNN(dim=6, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=1., update_coors=False, num_nearest_neighbors=3) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([EGNN(dim=10, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=1., update_coors=False, num_nearest_neighbors=3) for _ in range(gnn_size)])
 
-    def forward(self, x, mask=None):
+    def forward(self, x, context=None, mask=None):
         feats = x.repeat(1, 1, 2)
-        coors = x
+        coors = context
 
         for net in self.net:
             feats, coors = net(feats, coors, mask=mask)
@@ -28,20 +28,21 @@ def ar_net_init(hidden_dim=128, gnn_size=2):
 
     return _init
 
-class CouplingBlockFlow(Bijection):
+class ConditionalCouplingBlockFlow(ConditionalBijection):
     def __init__(self,
-    last_dimension=3,
-    ar_net_init=ar_net_init(hidden_dim=32, gnn_size=2),
+    max_nodes=9,
+    num_classes=5,
+    ar_net_init=ar_net_init(hidden_dim=64, gnn_size=2),
     mask_init=create_mask_ar):
         
-        super(CouplingBlockFlow, self).__init__()
+        super(ConditionalCouplingBlockFlow, self).__init__()
         self.transforms = nn.ModuleList()
 
-        for idx in range(3 * 9):
+        for idx in range(max_nodes * num_classes):
             ar_net = ar_net_init()
-            mask = mask_init(idx, (9, 3))
+            mask = mask_init(idx, (max_nodes, num_classes))
 
-            tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
+            tr = MaskedConditionalCouplingFlow(ar_net, mask=mask, split_dim=-1)
             self.transforms.append(tr)
         
     

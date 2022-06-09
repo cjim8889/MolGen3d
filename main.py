@@ -47,22 +47,22 @@ if __name__ == "__main__":
 
     batch = next(iter(train_loader))
 
-    print(batch.mask)
-    # mol = batch.pos
+    mol = batch.pos[0]
 
     # print(mol[0])
-    # xs = mol[:, 0]
-    # ys = mol[:, 1]
-    # zs = mol[:, 2]
+    xs = mol[:, 0]
+    ys = mol[:, 1]
+    zs = mol[:, 2]
 
-    # fig = plt.figure()
-    # ax = fig.add_subplot(projection='3d')
-    # ax.scatter(xs, ys, zs)
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter(xs, ys, zs)
 
-    # ax.set_xlabel('X Label')
-    # ax.set_ylabel('Y Label')
-    # ax.set_zlabel('Z Label')
+    ax.set_xlabel('X Label')
+    ax.set_ylabel('Y Label')
+    ax.set_zlabel('Z Label')
 
+    plt.show()
     # adj_dense = batch.orig_adj[0].argmax(dim=-1)
     # x = batch.x[0].long()
     # mol, smile = get_mol(x, adj_dense, verbose=False)
@@ -72,4 +72,3 @@ if __name__ == "__main__":
 
     
 
-    print(batch.pos[0])

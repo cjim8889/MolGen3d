@@ -2,7 +2,7 @@ from torch import nn
 import torch
 from survae.transforms.bijections import ConditionalBijection, Bijection
 
-from .block import ar_net_init, AdjacencyBlockFlow
+from .block import ar_net_init, CouplingBlockFlow
 
 class CoorFlow(nn.Module):
     def __init__(self, 
@@ -12,7 +12,7 @@ class CoorFlow(nn.Module):
 
         super().__init__()
 
-        self.transforms = nn.ModuleList([AdjacencyBlockFlow(last_dimension=3, ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size)) for _ in range(block_size)])
+        self.transforms = nn.ModuleList([CouplingBlockFlow(last_dimension=3, ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size)) for _ in range(block_size)])
 
     def forward(self, x, context=None, mask=None):
         log_prob = torch.zeros(x.shape[0], device=x.device)
