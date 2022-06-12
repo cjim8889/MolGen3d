@@ -41,8 +41,8 @@ class CouplingBlockFlow(Bijection):
             ar_net = ar_net_init()
             mask = mask_init(idx, (9, 3))
 
-            norm = ActNormBijection1d(num_features=9)
-            self.transforms.append(norm)
+            # norm = ActNormBijection1d(num_features=9)
+            # self.transforms.append(norm)
 
             tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
             self.transforms.append(tr)
