@@ -1,7 +1,7 @@
 from survae.transforms.bijections import Bijection
 from .utils import create_mask_ar
 from .coupling import MaskedCouplingFlow
-from survae.transforms.bijections import ConditionalBijection, Bijection
+from survae.transforms.bijections import ConditionalBijection, Bijection, ActNormBijection1d
 
 import torch
 from torch import nn
@@ -41,6 +41,9 @@ class CouplingBlockFlow(Bijection):
             ar_net = ar_net_init()
             mask = mask_init(idx, (9, 3))
 
+            norm = ActNormBijection1d(num_features=9)
+            self.transforms.append(norm)
+
             tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
             self.transforms.append(tr)
         
@@ -51,6 +54,8 @@ class CouplingBlockFlow(Bijection):
         for transform in self.transforms:
             if isinstance(transform, ConditionalBijection):
                 x, ldj = transform(x, context, mask=mask)
+            elif isinstance(transform, ActNormBijection1d):
+                x, ldj = transform(x)
             elif isinstance(transform, Bijection):
                 x, ldj = transform(x, mask=mask)
 
@@ -65,6 +70,8 @@ class CouplingBlockFlow(Bijection):
 
             if isinstance(self.transforms[idx], ConditionalBijection):
                 z, ldj = self.transforms[idx].inverse(z, context, mask=mask)
+            elif isinstance(self.transforms[idx], ActNormBijection1d):
+                x, ldj = self.transform[idx].inverse(z)
             elif isinstance(self.transforms[idx], Bijection):
                 z, ldj = self.transforms[idx].inverse(z, mask=mask)
 

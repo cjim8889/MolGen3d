@@ -4,7 +4,7 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 
 bond_dict = {0: Chem.rdchem.BondType.SINGLE, 1: Chem.rdchem.BondType.DOUBLE, 2: Chem.rdchem.BondType.TRIPLE, 3: Chem.rdchem.BondType.AROMATIC}
-atom_decoder = ['B', 'H', 'C', 'N', 'O', 'F']
+atom_decoder = ['N/A', 'H', 'C', 'N', 'O', 'F']
 atom_encoder = {'H': 1, 'C': 2, 'N': 3, 'O': 4, 'F': 5}
 
 def get_mol(atom_map, adj_dense, verbose=True):
