@@ -12,8 +12,8 @@ class MaskedCouplingFlow(Bijection):
         self.split_dim = split_dim
         
         self.register_buffer("mask", mask)
-        self.scaling_factor = nn.Parameter(torch.zeros(last_dimension))
-        # self.scaling_factor = nn.Parameter(torch.zeros(1))
+        # self.scaling_factor = nn.Parameter(torch.zeros(last_dimension))
+        self.scaling_factor = nn.Parameter(torch.zeros(1))
 
     def forward(self, x, mask=None):
         return self._transform(x, mask=mask, forward=True)
