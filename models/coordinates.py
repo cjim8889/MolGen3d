@@ -7,12 +7,13 @@ from .block import ar_net_init, CouplingBlockFlow
 class CoorFlow(nn.Module):
     def __init__(self, 
         hidden_dim=64, 
-        gnn_size=2,
-        block_size=6) -> None:
+        gnn_size=1,
+        block_size=6,
+        max_nodes=29) -> None:
 
         super().__init__()
 
-        self.transforms = nn.ModuleList([CouplingBlockFlow(last_dimension=3, ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size)) for _ in range(block_size)])
+        self.transforms = nn.ModuleList([CouplingBlockFlow(last_dimension=3, max_nodes=max_nodes, ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size)) for _ in range(block_size)])
 
     def forward(self, x, context=None, mask=None):
         log_prob = torch.zeros(x.shape[0], device=x.device)

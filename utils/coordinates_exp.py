@@ -58,7 +58,7 @@ class CoorExp:
         self.base = torch.distributions.Normal(loc=0., scale=1.)
 
     def train(self):
-        self.network(torch.zeros(1, 9, 3, device=device))
+        self.network(torch.zeros(1, 29, 3, device=device))
         print(f"Model Parameters: {sum([p.numel() for p in self.network.parameters()])}")
 
         with wandb.init(project="molecule-flow-3d", config=self.config):

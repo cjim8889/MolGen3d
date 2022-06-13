@@ -9,12 +9,11 @@ from torch_geometric.data import Batch, Data, Dataset
 def collate_fn(data_list: List[Data]) -> Batch:
     batch = Batch()
     accepted_keys = set(
-       [ "adj",
+       [
         "x",
         "pos",
-        "b_adj",
-        "orig_adj",
-        "mask"
+        "mask",
+        "smiles"
         ]
     )
     for key in data_list[0].keys:

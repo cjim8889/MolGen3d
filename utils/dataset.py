@@ -85,7 +85,7 @@ def get_datasets(type="mqm9", batch_size=128, shuffle=True, num_workers=4):
     if type == "mqm9":
         # Modified QM9 Dataset where all hydrogen atoms are removed
         # Max_num_nodes: 9
-        transform = T.Compose([ToDenseAdjV2(num_nodes=9)])
+        transform = T.Compose([ToDenseAdjV2(num_nodes=29)])
         dataset = ModifiedQM9(root="./mqm9-datasets", pre_transform=transform)
 
         transformed_x = dataset.data.x[:, :6]

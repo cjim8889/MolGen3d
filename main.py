@@ -2,6 +2,8 @@ from utils import get_datasets
 import matplotlib.pyplot as plt
 from rdkit import Chem
 from rdkit.Chem import Draw
+import torch
+from xyz2mol.xyz2mol import xyz2mol
 
 bond_dict = {0: Chem.rdchem.BondType.SINGLE, 1: Chem.rdchem.BondType.DOUBLE, 2: Chem.rdchem.BondType.TRIPLE, 3: Chem.rdchem.BondType.AROMATIC}
 atom_decoder = ['N/A', 'H', 'C', 'N', 'O', 'F']
@@ -47,29 +49,31 @@ if __name__ == "__main__":
 
     batch = next(iter(train_loader))
 
-    print(batch.x[..., 0].max())
-    mol = batch.pos[0]
+    
+    mol_idx = 0
 
-    # # print(mol[0])
-    # xs = mol[:, 0]
-    # ys = mol[:, 1]
-    # zs = mol[:, 2]
+    pos = batch.pos[mol_idx]
+    x = batch.x[mol_idx, :, 0].long().numpy()
+    smiles = batch.smiles[mol_idx]
+    mask = batch.mask[mol_idx]
 
-    # fig = plt.figure()
-    # ax = fig.add_subplot(projection='3d')
-    # ax.scatter(xs, ys, zs)
+    size = mask.to(torch.long).sum()
 
-    # ax.set_xlabel('X Label')
-    # ax.set_ylabel('Y Label')
-    # ax.set_zlabel('Z Label')
+    atom_decoder_int = [0, 1, 6, 7, 8, 9]
 
-    # plt.show()
-    # # adj_dense = batch.orig_adj[0].argmax(dim=-1)
-    # # x = batch.x[0].long()
-    # # mol, smile = get_mol(x, adj_dense, verbose=False)
-    # # print(smile)
+    atom_ty =[atom_decoder_int[i] for i in x[:size]]
+    pos = pos.numpy().tolist()
 
-    # # plt.show()
 
+    mols = xyz2mol(
+        atom_ty,
+        pos,
+        use_huckel=True,
+    )
+
+    print(smiles)
+
+    smiles_t = Chem.MolToSmiles(mols[0])
+    print(smiles_t)
     
 

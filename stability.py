@@ -30,14 +30,15 @@ if __name__ == "__main__":
 
     # pos = batch.pos
     # mask = batch.mask
+    batch_size = 256
 
     coor_net = CoorFlow(hidden_dim=128, gnn_size=1, block_size=2)
     coor_net.load_state_dict(
         torch.load("model_checkpoint_950.pt", map_location="cpu")['model_state_dict']
     )
 
-    z = base.sample(sample_shape=(128, 9, 3))
-    mask = torch.ones(128, 9).to(torch.bool)
+    z = base.sample(sample_shape=(batch_size, 9, 3))
+    mask = torch.ones(batch_size, 9).to(torch.bool)
 
     z = remove_mean_with_mask(z, node_mask=mask)
 
@@ -66,15 +67,20 @@ if __name__ == "__main__":
 
     for idx in range(atoms_types.shape[0]):
         size = mask[idx].to(torch.long).sum()
+        atom_decoder_int = [0, 1, 6, 7, 8, 9]
         atom_ty =[atom_decoder_int[i] for i in atoms_types[idx, :size]]
 
         pos_t = pos[idx, :size].tolist()
+
+        if 0 in atom_ty:
+            continue
 
         try:
             mols = xyz2mol(
                 atom_ty,
                 pos_t,
-                use_huckel=True
+                use_huckel=False,
+
             )
 
             mol = mols[0]

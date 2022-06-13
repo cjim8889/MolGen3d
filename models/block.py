@@ -32,17 +32,15 @@ class CouplingBlockFlow(Bijection):
     def __init__(self,
     last_dimension=3,
     ar_net_init=ar_net_init(hidden_dim=32, gnn_size=2),
-    mask_init=create_mask_ar):
+    mask_init=create_mask_ar,
+    max_nodes=29):
         
         super(CouplingBlockFlow, self).__init__()
         self.transforms = nn.ModuleList()
 
-        for idx in range(3 * 9):
+        for idx in range(max_nodes * last_dimension):
             ar_net = ar_net_init()
-            mask = mask_init(idx, (9, 3))
-
-            # norm = ActNormBijection1d(num_features=9)
-            # self.transforms.append(norm)
+            mask = mask_init(idx, (max_nodes, last_dimension))
 
             tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
             self.transforms.append(tr)
