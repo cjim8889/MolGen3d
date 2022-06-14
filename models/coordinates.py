@@ -15,14 +15,14 @@ class CoorFlow(nn.Module):
 
         self.transforms = nn.ModuleList([CouplingBlockFlow(last_dimension=3, max_nodes=max_nodes, ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size)) for _ in range(block_size)])
 
-    def forward(self, x, context=None, mask=None):
+    def forward(self, x, context=None, mask=None, logs=None):
         log_prob = torch.zeros(x.shape[0], device=x.device)
 
         for transform in self.transforms:
             if isinstance(transform, ConditionalBijection):
                 x, ldj = transform(x, context, mask=mask)
             elif isinstance(transform, Bijection):
-                x, ldj = transform(x, mask=mask)
+                x, ldj = transform(x, mask=mask, logs=logs)
 
             log_prob += ldj
         

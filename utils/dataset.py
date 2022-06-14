@@ -27,19 +27,19 @@ class ToDenseAdjV2(BaseTransform):
             edge_attr = data.edge_attr
 
         size = torch.Size([num_nodes, num_nodes] + list(edge_attr.size())[1:])
-        adj = torch.sparse_coo_tensor(data.edge_index, edge_attr, size)
+        # adj = torch.sparse_coo_tensor(data.edge_index, edge_attr, size)
 
-        data.orig_adj = adj.to_dense().float()
+        # data.orig_adj = adj.to_dense().float()
         
-        tmp = torch.ones(data.orig_adj.shape[0], data.orig_adj.shape[1], 1) * 0.5
+        # tmp = torch.ones(data.orig_adj.shape[0], data.orig_adj.shape[1], 1) * 0.5
 
-        data.orig_adj = torch.cat((data.orig_adj, tmp), dim=-1)
+        # data.orig_adj = torch.cat((data.orig_adj, tmp), dim=-1)
 
-        data.adj = data.orig_adj.argmax(dim=-1)
-        data.b_adj = data.adj.clone()
-        data.b_adj[data.b_adj > 0.] = 1.
+        # data.adj = data.orig_adj.argmax(dim=-1)
+        # data.b_adj = data.adj.clone()
+        # data.b_adj[data.b_adj > 0.] = 1.
 
-        data.adj = data.adj[torch.triu_indices(9,9).unbind()].long()
+        # data.adj = data.adj[torch.triu_indices(9,9).unbind()].long()
 
 
         data.edge_index = None

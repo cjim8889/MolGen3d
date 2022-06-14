@@ -13,7 +13,8 @@ def collate_fn(data_list: List[Data]) -> Batch:
         "x",
         "pos",
         "mask",
-        "smiles"
+        "smiles",
+        "formal_charge",
         ]
     )
     for key in data_list[0].keys:
