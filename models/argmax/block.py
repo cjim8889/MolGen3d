@@ -1,5 +1,5 @@
 from survae.transforms.bijections import Bijection
-from ..utils import create_mask_ar
+from ..utils import create_mask_equivariant
 from .coupling import MaskedConditionalCouplingFlow
 from survae.transforms.bijections import ConditionalBijection, Bijection
 
@@ -8,19 +8,29 @@ from torch import nn
 from egnn_pytorch import EGNN
 
 class ARNet(nn.Module):
-    def __init__(self, hidden_dim=128, gnn_size=2, num_classes=6):
+    def __init__(self, hidden_dim=32, gnn_size=1, num_classes=6):
         super().__init__()
 
-        self.net = nn.ModuleList([EGNN(dim=num_classes*2, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=1., update_coors=False, num_nearest_neighbors=3) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([EGNN(dim=num_classes*2, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=1., update_coors=False, num_nearest_neighbors=6) for _ in range(gnn_size)])
 
+        self.mlp = nn.Sequential(
+            nn.LazyLinear(hidden_dim),
+            nn.ReLU(),
+            nn.LazyLinear(num_classes * 2)
+        )
+        
     def forward(self, x, context=None, mask=None):
         feats = x.repeat(1, 1, 2)
+        mask = mask.expand(x.shape[0], mask.shape[1])
         coors = context
 
         for net in self.net:
             feats, coors = net(feats, coors, mask=mask)
         
-        return feats
+        feats = torch.sum(feats * mask.unsqueeze(2), dim=1) / torch.sum(mask, dim=1, keepdim=True)
+        feats = self.mlp(feats).unsqueeze(1)
+
+        return feats.repeat(1, x.shape[1], 1)
 
 def ar_net_init(hidden_dim=128, gnn_size=1):
     def _init():
@@ -33,14 +43,14 @@ class ConditionalCouplingBlockFlow(ConditionalBijection):
     max_nodes=9,
     num_classes=6,
     ar_net_init=ar_net_init(hidden_dim=64, gnn_size=1),
-    mask_init=create_mask_ar):
+    mask_init=create_mask_equivariant):
         
         super(ConditionalCouplingBlockFlow, self).__init__()
         self.transforms = nn.ModuleList()
 
-        for idx in range(max_nodes * num_classes):
+        for idx in range(max_nodes):
             ar_net = ar_net_init()
-            mask = mask_init(idx, (max_nodes, num_classes))
+            mask = mask_init(idx, max_nodes)
 
             tr = MaskedConditionalCouplingFlow(ar_net, mask=mask, split_dim=-1)
             self.transforms.append(tr)

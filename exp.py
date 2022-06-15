@@ -1,4 +1,5 @@
 from models import CoorFlow
+from models.argmax import AtomFlow
 
 from pprint import pprint
 import torch
@@ -7,15 +8,19 @@ from torch import nn
 
 
 
+
+net = AtomFlow(hidden_dim=16, block_size=1, num_classes=6)
+
+
 initial_mask = torch.ones(16, 29, dtype=torch.bool)
 initial_mask[:, -1] = False
 
-net = CoorFlow(hidden_dim=32, gnn_size=1, block_size=1, max_nodes=29)
+x = torch.randint(0, 6, (16, 29))
+coord = torch.randn(16, 29, 3)
 
-x = torch.randn(16, 29, 3)
+print(x[0])
+z, _ = net(x, context=coord, mask=initial_mask)
 
-z, _ = net(x, mask=initial_mask)
+x_, _ = net.inverse(z, context=coord, mask=initial_mask)
 
-pprint(z.shape)
-pprint(x[0])
-pprint(z[0])
+print(x_[0])

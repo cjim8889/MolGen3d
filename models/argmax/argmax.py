@@ -3,15 +3,17 @@ from torch import nn
 import torch
 from egnn_pytorch import EGNN
 from .conditional import ConditionalAdjacencyBlockFlow
+from .conditional.block import ar_net_init as ar_net_init_conditional
 
 from survae.flows import ConditionalInverseFlow
 from survae.distributions import ConditionalNormal
 from .surjectives import ArgmaxSurjection
 from .block import ConditionalCouplingBlockFlow
+from .block import ar_net_init as ar_net_init_block
 
 
 class ContextNet(nn.Module):
-    def __init__(self, hidden_dim=64, num_classes=5) -> None:
+    def __init__(self, hidden_dim=64, num_classes=6) -> None:
         super().__init__()
 
         self.embedding = nn.Sequential(
@@ -51,8 +53,9 @@ class AtomFlow(nn.Module):
 
         transforms = [
             ConditionalAdjacencyBlockFlow(
-                max_nodes=9,
-                num_classes=num_classes
+                max_nodes=29,
+                num_classes=num_classes,
+                ar_net_init=ar_net_init_conditional(hidden_dim=hidden_dim),
             ) for _ in range(block_size)
         ]
 
@@ -70,8 +73,9 @@ class AtomFlow(nn.Module):
         self.transforms.append(surjection)
 
         self.transforms += [ConditionalCouplingBlockFlow(
-                max_nodes=9,
-                num_classes=num_classes
+                max_nodes=29,
+                num_classes=num_classes,
+                ar_net_init=ar_net_init_block(hidden_dim=hidden_dim, gnn_size=1),
             ) for _ in range(block_size)]
     
     def forward(self, x, context, mask=None):

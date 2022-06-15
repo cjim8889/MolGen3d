@@ -24,13 +24,12 @@ class VertExp:
         self.base = torch.distributions.Normal(loc=0., scale=1.)
 
     def train(self):
-        mask = torch.ones(1, 9, device=device)
-        mask[:, -1] = 0.
-        mask = mask.to(torch.bool)
+        mask = torch.ones(1, 29, device=device, dtype=torch.bool)
+        mask[:, -1] = False
 
         self.network(
-            torch.randint(0, 6, (1, 9), device=device),
-            torch.randn(1, 9, 3, device=device),
+            torch.randint(0, 6, (1, 29), device=device),
+            torch.randn(1, 29, 3, device=device),
             mask = mask
         )
         print(f"Model Parameters: {sum([p.numel() for p in self.network.parameters()])}")

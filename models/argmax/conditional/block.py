@@ -6,20 +6,17 @@ from torch import nn
 import numpy as np
 from .coupling import MaskedConditionalCouplingFlow
 
-def create_mask_ar(idx, max_shape, invert=False):
-    mask = torch.zeros(max_shape, dtype=torch.float32)
+def create_mask_equivariant(idx, max_size, invert=False):
 
-    
-    row_idx =  idx // max_shape[1]
-    col_idx =  idx % max_shape[1]
+    mask = torch.zeros(max_size, dtype=torch.float32)
 
-    mask[row_idx, col_idx] = 1
-    mask = mask.view(1, max_shape[0], max_shape[1])
+    mask[idx] = 1
+    mask = mask.view(1, max_size)
 
     if not invert:
         mask = 1 - mask
 
-    return mask
+    return mask.to(torch.bool)
 
 class ConditionalARNet(nn.Module):
     def __init__(self, hidden_dim=64):
@@ -36,33 +33,33 @@ class ConditionalARNet(nn.Module):
             nn.ReLU(),
         )
 
-    # x: B x 9 x 5
-    # context: B x 9 x 5
+    # x: B x 9 x 6
+    # context: B x 9 x 6
     def forward(self, x, context):
         z = torch.stack((x, context), dim=1)
         z = self.net(z)
 
         return z
 
-def ar_net_init(ConditionalARNet, **kwargs):
+def ar_net_init(**kwargs):
     def create():
         return ConditionalARNet(**kwargs)
 
     return create
 
 class ConditionalAdjacencyBlockFlow(ConditionalBijection):
-    def __init__(self, ar_net_init=ar_net_init(ConditionalARNet, hidden_dim=64),
+    def __init__(self, ar_net_init=ar_net_init(hidden_dim=64),
             max_nodes=9,
             num_classes=6,
-            mask_init=create_mask_ar,
+            mask_init=create_mask_equivariant,
             split_dim=1):
 
         super(ConditionalAdjacencyBlockFlow, self).__init__()
         self.transforms = nn.ModuleList()
 
-        for idx in range(num_classes * max_nodes):
+        for idx in range(max_nodes):
             ar_net = ar_net_init()
-            mask = mask_init(idx, (max_nodes, num_classes))
+            mask = mask_init(idx, max_nodes)
 
             tr = MaskedConditionalCouplingFlow(ar_net, mask=mask, split_dim=split_dim)
             self.transforms.append(tr)
