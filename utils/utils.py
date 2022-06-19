@@ -27,10 +27,10 @@ def create_model(config):
         raise ValueError(f"Unknown optimiser: {config['optimiser']}")
 
     scheduler = None
-    if "scheduler" in config:
-        if config["scheduler"] == "StepLR":
-            scheduler = torch.optim.lr_scheduler.StepLR(optimiser, step_size=config['scheduler_step'], gamma=config["scheduler_gamma"])
+    if config["scheduler"] == "StepLR":
+        scheduler = torch.optim.lr_scheduler.StepLR(optimiser, step_size=config['scheduler_step'], gamma=config["scheduler_gamma"])
 
+    
     if "load_from" in config:
         states = torch.load(config["load_from"], map_location=device)
 

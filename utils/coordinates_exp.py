@@ -104,8 +104,10 @@ class CoorExp:
                         
                         loss_step = 0
 
-                self.scheduler.step()
-                wandb.log({"Learning Rate/Epoch": self.scheduler.get_last_lr()[0]})
+                if self.scheduler is not None:
+                    self.scheduler.step()
+                    wandb.log({"Learning Rate/Epoch": self.scheduler.get_last_lr()[0]})
+                    
                 wandb.log({"NLL/Epoch": (loss_ep_train / len(self.train_loader)).item()}, step=epoch)
                 if self.config['upload']:
                     if epoch % self.config['upload_interval'] == 0:
