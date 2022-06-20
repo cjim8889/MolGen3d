@@ -107,15 +107,22 @@ class CoorExp:
                 if self.scheduler is not None:
                     self.scheduler.step()
                     wandb.log({"Learning Rate/Epoch": self.scheduler.get_last_lr()[0]})
-                    
+
                 wandb.log({"NLL/Epoch": (loss_ep_train / len(self.train_loader)).item()}, step=epoch)
                 if self.config['upload']:
                     if epoch % self.config['upload_interval'] == 0:
-                        torch.save({
-                        'epoch': epoch,
-                        'model_state_dict': self.network.state_dict(),
-                        'optimizer_state_dict': self.optimiser.state_dict(),
-                        'scheduler_state_dict': self.scheduler.state_dict(),
-                        }, f"model_checkpoint_{run.id}_{epoch}.pt")
-                    
+                        if self.scheduler is not None:
+                            torch.save({
+                            'epoch': epoch,
+                            'model_state_dict': self.network.state_dict(),
+                            'optimizer_state_dict': self.optimiser.state_dict(),
+                            'scheduler_state_dict': self.scheduler.state_dict(),
+                            }, f"model_checkpoint_{run.id}_{epoch}.pt")
+                        else:
+                            torch.save({
+                            'epoch': epoch,
+                            'model_state_dict': self.network.state_dict(),
+                            'optimizer_state_dict': self.optimiser.state_dict(),
+                            }, f"model_checkpoint_{run.id}_{epoch}.pt")
+                        
                         wandb.save(f"model_checkpoint_{run.id}_{epoch}.pt")
