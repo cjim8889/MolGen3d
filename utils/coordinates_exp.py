@@ -95,13 +95,21 @@ class CoorExp:
                     loss_step += loss
                     loss_ep_train += loss
 
+                    if loss > 1e3 and epoch > 5:
+                        torch.save({
+                        'epoch': epoch,
+                        'model_state_dict': self.network.state_dict(),
+                        'input': input,
+                        'mask': mask,
+                        }, f"model_irregularity_{run.id}_{epoch}_{step}.pt")
+
+                        wandb.save(f"model_irregularity_{run.id}_{epoch}.pt")
                     
                     step += 1
-                    if idx % 5 == 0:
-                        ll = (loss_step / 5.).item()
+                    if idx % 10 == 0:
+                        ll = (loss_step / 10.).item()
                         wandb.log({"epoch": epoch, "NLL": ll}, step=step)
 
-                        
                         loss_step = 0
 
                 if self.scheduler is not None:
