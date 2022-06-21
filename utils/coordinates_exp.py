@@ -103,7 +103,7 @@ class CoorExp:
                         'mask': mask,
                         }, f"model_irregularity_{run.id}_{epoch}_{step}.pt")
 
-                        wandb.save(f"model_irregularity_{run.id}_{epoch}.pt")
+                        wandb.save(f"model_irregularity_{run.id}_{epoch}_{step}.pt")
                     
                     step += 1
                     if idx % 10 == 0:

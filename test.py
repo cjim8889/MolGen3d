@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     # net = EGNN(dim=6)
 
-    net = CoorFlow(hidden_dim=128, gnn_size=1, block_size=16)
+    net = CoorFlow(hidden_dim=64, gnn_size=1, block_size=8)
     # net = ContextNet(hidden_dim=32, num_classes=5)
     # net = AtomFlow(hidden_dim=32)
 

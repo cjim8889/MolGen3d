@@ -11,8 +11,14 @@ class ARNet(nn.Module):
     def __init__(self, hidden_dim=32, gnn_size=1):
         super().__init__()
 
-        self.net = nn.ModuleList([EGNN(dim=6, m_dim=hidden_dim, norm_coors=True, soft_edges=False, coor_weights_clamp_value=2., num_nearest_neighbors=8, update_coors=False) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([EGNN(dim=3, m_dim=hidden_dim, norm_feats=True, norm_coors=True, soft_edges=False, coor_weights_clamp_value=2., num_nearest_neighbors=8, update_coors=False) for _ in range(gnn_size)])
 
+        self.mlp = nn.Sequential(
+            nn.LazyLinear(hidden_dim),
+            nn.ReLU(),
+            nn.LazyLinear(174),
+            nn.Sigmoid()
+        )
         # self.mlp = nn.Sequential(
         #     nn.LazyLinear(hidden_dim),
         #     nn.ReLU(),
@@ -20,17 +26,17 @@ class ARNet(nn.Module):
         # )
         
     def forward(self, x, mask=None):
-        feats = x.repeat(1, 1, 2)
+        feats = x
         coors = x
 
         for net in self.net:
             feats, coors = net(feats, coors, mask=mask)
         
-        # feats = torch.sum(feats * mask.unsqueeze(2), dim=1) / torch.sum(mask, dim=1, keepdim=True)
-        # feats = self.mlp(feats).unsqueeze(1)
+        feats = torch.sum(feats * mask.unsqueeze(2), dim=1) / torch.sum(mask, dim=1, keepdim=True)
+        feats = self.mlp(feats)
 
         # return feats.repeat(1, x.shape[1], 1)
-        return feats
+        return feats.view(x.shape[0], 29, 6)
 
 def ar_net_init(hidden_dim=128, gnn_size=2):
     def _init():
