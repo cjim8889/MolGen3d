@@ -95,7 +95,7 @@ class CoorExp:
                     loss_step += loss
                     loss_ep_train += loss
 
-                    if loss > 1e3 and epoch > 5:
+                    if (loss > 1e3 or torch.isnan(loss)) and epoch > 5:
                         torch.save({
                         'epoch': epoch,
                         'model_state_dict': self.network.state_dict(),

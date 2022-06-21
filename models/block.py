@@ -11,7 +11,7 @@ class ARNet(nn.Module):
     def __init__(self, hidden_dim=32, gnn_size=1):
         super().__init__()
 
-        self.net = nn.ModuleList([EGNN(dim=6, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=1., update_coors=False) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([EGNN(dim=6, m_dim=hidden_dim, norm_coors=True, soft_edges=False, coor_weights_clamp_value=2., num_nearest_neighbors=8, update_coors=False) for _ in range(gnn_size)])
 
         # self.mlp = nn.Sequential(
         #     nn.LazyLinear(hidden_dim),
