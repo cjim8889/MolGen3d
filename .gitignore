@@ -12,6 +12,7 @@ wandb/
 *.so
 
 *.pt
+*.png
 
 *.icloud
 *vscode/
