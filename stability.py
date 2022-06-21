@@ -21,11 +21,11 @@ def remove_mean_with_mask(x, node_mask):
     x = x - mean * node_mask
     return x
 
-def get_mol(atom_types, pos):
-    pass
 
 # 0.029
 # 0.016
+# 0.018
+
 
 if __name__ == "__main__":
     # train_loader, test_loader = get_datasets(type="mqm9")
@@ -36,9 +36,9 @@ if __name__ == "__main__":
     # mask = batch.mask
     batch_size = 1000
 
-    coor_net = CoorFlow(hidden_dim=64, gnn_size=1, block_size=8)
+    coor_net = CoorFlow(hidden_dim=128, gnn_size=1, block_size=8)
     coor_net.load_state_dict(
-        torch.load("model_checkpoint_27pnk9mt_550.pt", map_location="cpu")['model_state_dict']
+        torch.load("model_checkpoint_6t3r3rze_690.pt", map_location="cpu")['model_state_dict']
     )
 
     z = base.sample(sample_shape=(batch_size, 29, 3))
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     )
 
     net.load_state_dict(
-        torch.load("model_checkpoint_2gq9kaav_490.pt", map_location="cpu")['model_state_dict']
+        torch.load("model_checkpoint_2gq9kaav_645.pt", map_location="cpu")['model_state_dict']
     )
 
     with torch.no_grad():
@@ -77,6 +77,7 @@ if __name__ == "__main__":
     pos = pos.numpy()
 
     valid_smiles =[]
+    valid_mols = []
     # print(atoms_types[0])
     for idx in range(atoms_types.shape[0]):
         size = mask[idx].to(torch.long).sum()
@@ -105,9 +106,14 @@ if __name__ == "__main__":
                 else:
                     valid += 1
                     valid_smiles.append(smiles)
+                    valid_mols.append(mol)
                     break
         except:
             pass
+    
+    plot = Draw.MolsToGridImage(valid_mols, molsPerRow=4, subImgSize=(500, 500), legends=valid_smiles)
+    number = np.random.randint(0, 10000)
+    plot.save(f"local_interpolcation_{number}.png")
 
     pprint(valid_smiles)
     print(valid * 1.0 / batch_size)

@@ -11,13 +11,13 @@ class ARNet(nn.Module):
     def __init__(self, hidden_dim=32, gnn_size=1):
         super().__init__()
 
-        self.net = nn.ModuleList([EGNN(dim=6, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=1., update_coors=False, num_nearest_neighbors=3) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([EGNN(dim=6, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=1., update_coors=False) for _ in range(gnn_size)])
 
-        self.mlp = nn.Sequential(
-            nn.LazyLinear(hidden_dim),
-            nn.ReLU(),
-            nn.LazyLinear(6)
-        )
+        # self.mlp = nn.Sequential(
+        #     nn.LazyLinear(hidden_dim),
+        #     nn.ReLU(),
+        #     nn.LazyLinear(6)
+        # )
         
     def forward(self, x, mask=None):
         feats = x.repeat(1, 1, 2)
@@ -26,10 +26,11 @@ class ARNet(nn.Module):
         for net in self.net:
             feats, coors = net(feats, coors, mask=mask)
         
-        feats = torch.sum(feats * mask.unsqueeze(2), dim=1) / torch.sum(mask, dim=1, keepdim=True)
-        feats = self.mlp(feats).unsqueeze(1)
+        # feats = torch.sum(feats * mask.unsqueeze(2), dim=1) / torch.sum(mask, dim=1, keepdim=True)
+        # feats = self.mlp(feats).unsqueeze(1)
 
-        return feats.repeat(1, x.shape[1], 1)
+        # return feats.repeat(1, x.shape[1], 1)
+        return feats
 
 def ar_net_init(hidden_dim=128, gnn_size=2):
     def _init():
@@ -47,12 +48,18 @@ class CouplingBlockFlow(Bijection):
         super(CouplingBlockFlow, self).__init__()
         self.transforms = nn.ModuleList()
 
-        for idx in range(max_nodes):
+        for idx in range(0, max_nodes, 3):
             ar_net = ar_net_init()
-            mask = mask_init(idx, max_nodes)
-
+            mask = mask_init([i for i in range(idx, min(idx + 3, max_nodes))], max_nodes)
             tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
             self.transforms.append(tr)
+
+        # for idx in range(max_nodes):
+        #     ar_net = ar_net_init()
+        #     mask = mask_init(idx, max_nodes)
+
+        #     tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
+        #     self.transforms.append(tr)
         
     
     def forward(self, x, context=None, mask=None, logs=None):

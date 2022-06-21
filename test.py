@@ -51,21 +51,31 @@ if __name__ == "__main__":
 
     # net = EGNN(dim=6)
 
-    # net = CoorFlow(hidden_dim=32, gnn_size=1, block_size=4)
+    net = CoorFlow(hidden_dim=128, gnn_size=1, block_size=16)
     # net = ContextNet(hidden_dim=32, num_classes=5)
-    net = AtomFlow(hidden_dim=32)
+    # net = AtomFlow(hidden_dim=32)
 
-    feats = torch.randint(0, 5, size=(1, 9))
-    coors = torch.randn(1, 9, 3)
-    # coors = torch.randint(0, 5, size=(1, 9, 5))
-    mask = create_mask_ar(26, (9, 3))
-    mask = torch.ones(1, 9)
+    # feats = torch.randint(0, 5, size=(1, 9))
+    coors = torch.randn(1, 29, 3)
+    mask = torch.ones(1, 29)
     mask[:, -1] = 0.
     mask = mask.to(torch.bool)
 
-    z, _ = net(feats, coors, mask=mask)
-    x, _ = net.inverse(z, coors, mask=mask)
-    print(z, x, feats)
+    z, _ = net(coors, mask=mask)
+    print(z.shape)
+    print(f"Model Parameters: {sum([p.numel() for p in net.parameters()])}")
+
+
+    # z, _ = net(feats, coors, mask=mask)
+    # x, _ = net.inverse(z, coors, mask=mask)
+    # print(z, x, feats)
+
+    # mask = create_mask_equivariant(
+    #     idx=[0, 1, 2], max_size=29
+    # )
+
+
+    # print(mask)
     # feats = torch.randn(1, 9, 6)
     # coors = torch.randn(1, 9, 3)
     # mask = create_mask_ar(26, (9, 3))
