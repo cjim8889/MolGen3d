@@ -51,11 +51,11 @@ if __name__ == "__main__":
 
     # net = EGNN(dim=6)
 
-    net = CoorFlow(hidden_dim=64, gnn_size=1, block_size=8)
-    # net = ContextNet(hidden_dim=32, num_classes=5)
-    # net = AtomFlow(hidden_dim=32)
+    net = CoorFlow(hidden_dim=64, gnn_size=1, block_size=1)
+    # # net = ContextNet(hidden_dim=32, num_classes=5)
+    # # net = AtomFlow(hidden_dim=32)
 
-    # feats = torch.randint(0, 5, size=(1, 9))
+    # # feats = torch.randint(0, 5, size=(1, 9))
     coors = torch.randn(1, 29, 3)
     mask = torch.ones(1, 29)
     mask[:, -1] = 0.
@@ -65,6 +65,7 @@ if __name__ == "__main__":
     print(z.shape)
     print(f"Model Parameters: {sum([p.numel() for p in net.parameters()])}")
 
+    
 
     # z, _ = net(feats, coors, mask=mask)
     # x, _ = net.inverse(z, coors, mask=mask)
