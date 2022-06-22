@@ -35,10 +35,10 @@ class MaskedCouplingFlow(Bijection):
         alpha = alpha * ~self_mask
         beta = beta * ~self_mask
         
-        # if mask is not None:
-        #     mask = mask.unsqueeze(2)
-        #     alpha = alpha * mask
-        #     beta = beta * mask
+        if mask is not None:
+            mask = mask.unsqueeze(2)
+            alpha = alpha * mask
+            beta = beta * mask
 
         if forward:
             z = (z + beta) * torch.exp(alpha) # Exp to ensure invertibility

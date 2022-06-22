@@ -34,7 +34,7 @@ class VertExp:
         )
         print(f"Model Parameters: {sum([p.numel() for p in self.network.parameters()])}")
 
-        with wandb.init(project="molecule-flow-3d", config=self.config) as run:
+        with wandb.init(project="molecule-flow-3d", config=self.config, entity="iclac") as run:
             step = 0
             for epoch in range(self.config['epochs']):
                 loss_step = 0

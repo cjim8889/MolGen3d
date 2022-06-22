@@ -61,7 +61,7 @@ class CoorExp:
         self.network(torch.zeros(1, 29, 3, device=device), mask=torch.ones(1, 29, device=device, dtype=torch.bool))
         print(f"Model Parameters: {sum([p.numel() for p in self.network.parameters()])}")
 
-        with wandb.init(project="molecule-flow-3d", config=self.config) as run:
+        with wandb.init(project="molecule-flow-3d", config=self.config, entity="iclac") as run:
             step = 0
             for epoch in range(self.config['epochs']):
                 loss_step = 0
