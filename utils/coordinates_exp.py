@@ -87,11 +87,7 @@ class CoorExp:
                         log_prob = sum_except_batch(self.base.log_prob(z))
 
                     loss = argmax_criterion(log_prob, log_det)
-                    loss.backward()
-
-                    nn.utils.clip_grad_norm_(self.network.parameters(), 1)
-                    self.optimiser.step()
-
+                    
                     loss_step += loss
                     loss_ep_train += loss
 
@@ -105,6 +101,11 @@ class CoorExp:
 
                         wandb.save(f"model_irregularity_{run.id}_{epoch}_{step}.pt")
                     
+                    loss.backward()
+
+                    nn.utils.clip_grad_norm_(self.network.parameters(), 1)
+                    self.optimiser.step()
+
                     step += 1
                     if idx % 10 == 0:
                         ll = (loss_step / 10.).item()

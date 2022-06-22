@@ -1,10 +1,6 @@
-from models import create_mask_equivariant, create_mask_ar
-from egnn_pytorch import EGNN
 import torch
-from torch import nn
 from survae.utils import sum_except_batch
 import numpy as np
-from models.argmax.argmax import ContextNet, AtomFlow
 
 from models.coordinates import CoorFlow
 
@@ -15,11 +11,11 @@ def assert_mean_zero_with_mask(x, node_mask):
 
 
 def assert_correctly_masked(variable, node_mask):
-    assert (variable * (1 - node_mask)).abs().max().item() < 1e-4, \
+    assert (variable * ~ node_mask).abs().max().item() < 1e-4, \
         'Variables not masked properly.'
 # mask = create_mask_equivariant(1, 3)
 def remove_mean_with_mask(x, node_mask):
-    # assert (x * (1 - node_mask)).abs().sum().item() < 1e-8
+    assert (x * ~ node_mask.unsqueeze(2)).abs().sum().item() < 1e-8
     node_mask = node_mask.unsqueeze(2)
     N = node_mask.sum(1, keepdims=True)
 
@@ -28,7 +24,7 @@ def remove_mean_with_mask(x, node_mask):
     return x
 # print(mask)
 def center_gravity_zero_gaussian_log_likelihood_with_mask(x, node_mask):
-    # assert len(x.size()) == 3
+    assert len(x.size()) == 3
     node_mask = node_mask.unsqueeze(2)
     B, N_embedded, D = x.size()
 
@@ -46,24 +42,41 @@ def center_gravity_zero_gaussian_log_likelihood_with_mask(x, node_mask):
 
     return log_px
 
+@torch.jit.script
+def argmax_criterion(log_prob, log_det):
+    return - torch.mean(log_prob + log_det)
 
 if __name__ == "__main__":
 
     # net = EGNN(dim=6)
 
-    net = CoorFlow(hidden_dim=64, gnn_size=1, block_size=1)
+    net = CoorFlow(hidden_dim=128, gnn_size=1, block_size=8)
+
+    pt = torch.load("model_irregularity_33ujozby_7_6197.pt", map_location="cpu")
+
+    net.load_state_dict(pt["model_state_dict"])
+
+    input = pt['input']
+    mask = pt['mask']
+
+    z, log_det = net(input, mask=mask)
+
+    z = z * mask.unsqueeze(2)
+    zero_mean_z = remove_mean_with_mask(z, node_mask=mask)
+    log_prob = sum_except_batch(center_gravity_zero_gaussian_log_likelihood_with_mask(zero_mean_z, node_mask=mask))
+
+    loss = argmax_criterion(log_prob, log_det)    
+    print(loss)
     # # net = ContextNet(hidden_dim=32, num_classes=5)
     # # net = AtomFlow(hidden_dim=32)
 
     # # feats = torch.randint(0, 5, size=(1, 9))
-    coors = torch.randn(1, 29, 3)
-    mask = torch.ones(1, 29)
-    mask[:, -1] = 0.
-    mask = mask.to(torch.bool)
+    # coors = torch.randn(1, 29, 3)
+    # mask = torch.ones(1, 29)
+    # mask[:, -1] = 0.
+    # mask = mask.to(torch.bool)
 
-    z, _ = net(coors, mask=mask)
-    print(z.shape)
-    print(f"Model Parameters: {sum([p.numel() for p in net.parameters()])}")
+    # z, _ = net(coors, mask=mask)
 
     
 
