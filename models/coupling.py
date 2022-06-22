@@ -26,7 +26,7 @@ class MaskedCouplingFlow(Bijection):
 
         z_masked = z * self_mask
 
-        alpha, beta = self.ar_net(z_masked, mask=torch.logical_and(mask, self.mask)).chunk(2, dim=self.split_dim)
+        alpha, beta = self.ar_net(z_masked, mask=mask).chunk(2, dim=self.split_dim)
 
         # scaling factor idea inspired by UvA github to stabilise training 
         scaling_factor = self.scaling_factor.exp().view(1, 1, -1)

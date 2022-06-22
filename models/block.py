@@ -13,7 +13,7 @@ class ARNet(nn.Module):
 
         self.idx = idx
 
-        self.net = nn.ModuleList([EGNN(dim=3, m_dim=hidden_dim, norm_feats=True, norm_coors=True, soft_edges=False, coor_weights_clamp_value=2., num_nearest_neighbors=8, update_coors=False) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([EGNN(dim=6, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=1., num_nearest_neighbors=6, update_coors=False) for _ in range(gnn_size)])
 
         self.mlp = nn.Sequential(
             nn.LazyLinear(hidden_dim),
@@ -27,7 +27,7 @@ class ARNet(nn.Module):
         # )
         
     def forward(self, x, mask=None):
-        feats = x
+        feats = x.repeat(1, 1, 2)
         coors = x
 
         for net in self.net:
