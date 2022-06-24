@@ -75,7 +75,7 @@ class CoorExp:
                     input = batch_data.pos.to(device)
                     mask = batch_data.mask.to(device)
 
-                    self.optimiser.zero_grad(set_to_none=True)
+                    self.optimiser.zero_grad()
                     
                     with autocast():
                         z, log_det = self.network(input, mask=mask)
@@ -101,10 +101,13 @@ class CoorExp:
 
                         wandb.save(f"model_irregularity_{run.id}_{epoch}_{step}.pt")
 
-                    scaler.scale(loss).backward()
-                    
+
                     loss_step += loss
                     loss_ep_train += loss
+
+                    scaler.scale(loss).backward()
+                    scaler.unscale_(self.optimizer)
+                    nn.utils.clip_grad_norm_(self.network.parameters(), 1)
                     
                     # loss.backward()
 
