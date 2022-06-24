@@ -26,7 +26,15 @@ def remove_mean_with_mask(x, node_mask):
 # 0.016
 # 0.018
 
-
+# 0.026
+# 0.026
+# 0.024
+# 0.026
+# 0.018
+# 0.024
+# 0.032
+# 0.034
+# 0.036
 if __name__ == "__main__":
     # train_loader, test_loader = get_datasets(type="mqm9")
     base = torch.distributions.Normal(loc=0., scale=1.)
@@ -38,12 +46,12 @@ if __name__ == "__main__":
 
     coor_net = CoorFlow(hidden_dim=128, gnn_size=1, block_size=8)
     coor_net.load_state_dict(
-        torch.load("model_checkpoint_6t3r3rze_690.pt", map_location="cpu")['model_state_dict']
+        torch.load("model_checkpoint_33ujozby_480.pt", map_location="cpu")['model_state_dict']
     )
 
     z = base.sample(sample_shape=(batch_size, 29, 3))
     mask = torch.ones(batch_size, 29).to(torch.bool)
-    mask_size = torch.randint(5, 29, (batch_size,))
+    mask_size = torch.randint(2, 29, (batch_size,))
     
     for idx in range(batch_size):
         mask[idx, mask_size[idx]:] = False
@@ -111,9 +119,9 @@ if __name__ == "__main__":
         except:
             pass
     
-    plot = Draw.MolsToGridImage(valid_mols, molsPerRow=4, subImgSize=(500, 500), legends=valid_smiles)
-    number = np.random.randint(0, 10000)
-    plot.save(f"local_interpolcation_{number}.png")
+    # plot = Draw.MolsToGridImage(valid_mols, molsPerRow=4, subImgSize=(500, 500), legends=valid_smiles)
+    # number = np.random.randint(0, 10000)
+    # plot.save(f"local_interpolcation_{number}.png")
 
     pprint(valid_smiles)
     print(valid * 1.0 / batch_size)

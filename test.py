@@ -50,9 +50,9 @@ if __name__ == "__main__":
 
     # net = EGNN(dim=6)
 
-    net = CoorFlow(hidden_dim=128, gnn_size=1, block_size=8)
+    net = CoorFlow(hidden_dim=128, gnn_size=2, block_size=8)
 
-    pt = torch.load("model_irregularity_33ujozby_7_6197.pt", map_location="cpu")
+    pt = torch.load("model_irregularity_1426rlyj_400_81209.pt", map_location="cpu")
 
     net.load_state_dict(pt["model_state_dict"])
 

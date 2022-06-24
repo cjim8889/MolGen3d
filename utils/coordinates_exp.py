@@ -7,6 +7,7 @@ import wandb
 import torch
 import numpy as np
 from torch import nn
+from torch.cuda.amp import GradScaler, autocast
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # @torch.jit.script
@@ -61,6 +62,7 @@ class CoorExp:
         self.network(torch.zeros(1, 29, 3, device=device), mask=torch.ones(1, 29, device=device, dtype=torch.bool))
         print(f"Model Parameters: {sum([p.numel() for p in self.network.parameters()])}")
 
+        scaler = GradScaler()
         with wandb.init(project="molecule-flow-3d", config=self.config, entity="iclac") as run:
             step = 0
             for epoch in range(self.config['epochs']):
@@ -73,23 +75,21 @@ class CoorExp:
                     input = batch_data.pos.to(device)
                     mask = batch_data.mask.to(device)
 
-                    self.optimiser.zero_grad()
-
-                    z, log_det = self.network(input, mask=mask)
-
-                    log_prob = None
-
-                    if self.config['base'] == "invariant":
-                        z = z * mask.unsqueeze(2)
-                        zero_mean_z = remove_mean_with_mask(z, node_mask=mask)
-                        log_prob = sum_except_batch(center_gravity_zero_gaussian_log_likelihood_with_mask(zero_mean_z, node_mask=mask))
-                    else:
-                        log_prob = sum_except_batch(self.base.log_prob(z))
-
-                    loss = argmax_criterion(log_prob, log_det)
+                    self.optimiser.zero_grad(set_to_none=True)
                     
-                    loss_step += loss
-                    loss_ep_train += loss
+                    with autocast():
+                        z, log_det = self.network(input, mask=mask)
+
+                        log_prob = None
+
+                        if self.config['base'] == "invariant":
+                            z = z * mask.unsqueeze(2)
+                            zero_mean_z = remove_mean_with_mask(z, node_mask=mask)
+                            log_prob = sum_except_batch(center_gravity_zero_gaussian_log_likelihood_with_mask(zero_mean_z, node_mask=mask))
+                        else:
+                            log_prob = sum_except_batch(self.base.log_prob(z))
+
+                        loss = argmax_criterion(log_prob, log_det)
 
                     if (loss > 1e3 and epoch > 5) or torch.isnan(loss):
                         torch.save({
@@ -100,11 +100,18 @@ class CoorExp:
                         }, f"model_irregularity_{run.id}_{epoch}_{step}.pt")
 
                         wandb.save(f"model_irregularity_{run.id}_{epoch}_{step}.pt")
-                    
-                    loss.backward()
 
-                    nn.utils.clip_grad_norm_(self.network.parameters(), 1)
-                    self.optimiser.step()
+                    scaler.scale(loss).backward()
+                    
+                    loss_step += loss
+                    loss_ep_train += loss
+                    
+                    # loss.backward()
+
+                    # nn.utils.clip_grad_norm_(self.network.parameters(), 1)
+                    # self.optimiser.step()
+                    scaler.step(self.optimiser)
+                    scaler.update()
 
                     step += 1
                     if idx % 10 == 0:
