@@ -106,7 +106,7 @@ class CoorExp:
                     loss_ep_train += loss
 
                     scaler.scale(loss).backward()
-                    scaler.unscale_(self.optimizer)
+                    scaler.unscale_(self.optimiser)
                     nn.utils.clip_grad_norm_(self.network.parameters(), 1)
                     
                     # loss.backward()
