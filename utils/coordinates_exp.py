@@ -57,6 +57,7 @@ class CoorExp:
         self.train_loader, self.test_loader = get_datasets(type="mqm9", batch_size=self.batch_size)
         self.network, self.optimiser, self.scheduler = create_model(self.config)
         self.base = torch.distributions.Normal(loc=0., scale=1.)
+        self.total_logged = 0
 
     def train(self):
         self.network(torch.zeros(1, 29, 3, device=device), mask=torch.ones(1, 29, device=device, dtype=torch.bool))
@@ -92,14 +93,17 @@ class CoorExp:
                         loss = argmax_criterion(log_prob, log_det)
 
                     if (loss > 1e3 and epoch > 5) or torch.isnan(loss):
-                        torch.save({
-                        'epoch': epoch,
-                        'model_state_dict': self.network.state_dict(),
-                        'input': input,
-                        'mask': mask,
-                        }, f"model_irregularity_{run.id}_{epoch}_{step}.pt")
+                        if self.total_logged < 30:
+                            torch.save({
+                            'epoch': epoch,
+                            'model_state_dict': self.network.state_dict(),
+                            'input': input,
+                            'mask': mask,
+                            }, f"model_irregularity_{run.id}_{epoch}_{step}.pt")
 
-                        wandb.save(f"model_irregularity_{run.id}_{epoch}_{step}.pt")
+                            wandb.save(f"model_irregularity_{run.id}_{epoch}_{step}.pt")
+
+                            self.total_logged += 1
 
 
                     loss_step += loss
