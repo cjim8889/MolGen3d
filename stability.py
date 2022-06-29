@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     z = base.sample(sample_shape=(batch_size, 29, 3))
     mask = torch.ones(batch_size, 29).to(torch.bool)
-    mask_size = torch.randint(2, 29, (batch_size,))
+    mask_size = torch.randint(3, 29, (batch_size,))
     
     for idx in range(batch_size):
         mask[idx, mask_size[idx]:] = False
