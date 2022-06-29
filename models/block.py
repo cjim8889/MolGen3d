@@ -13,7 +13,7 @@ class ARNet(nn.Module):
 
         self.idx = idx
 
-        self.net = nn.ModuleList([EGNN(dim=6, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=1., num_nearest_neighbors=6, update_coors=False) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([EGNN(dim=6, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=2., num_nearest_neighbors=6, update_coors=False) for _ in range(gnn_size)])
 
         self.mlp = nn.Sequential(
             nn.LazyLinear(hidden_dim),
@@ -54,9 +54,9 @@ class CouplingBlockFlow(Bijection):
         super(CouplingBlockFlow, self).__init__()
         self.transforms = nn.ModuleList()
 
-        for idx in range(0, max_nodes, 3):
-            ar_net = ar_net_init((idx, min(idx + 3, max_nodes)))
-            mask = mask_init([i for i in range(idx, min(idx + 3, max_nodes))], max_nodes)
+        for idx in range(0, max_nodes, 2):
+            ar_net = ar_net_init((idx, min(idx + 2, max_nodes)))
+            mask = mask_init([i for i in range(idx, min(idx + 2, max_nodes))], max_nodes)
             tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
             self.transforms.append(tr)
 
