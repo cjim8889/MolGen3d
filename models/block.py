@@ -18,9 +18,9 @@ class ARNet(nn.Module):
         self.net = nn.ModuleList([LipEGNN(dim=6, m_dim=hidden_dim, norm_feats=True, soft_edges=True, coor_weights_clamp_value=2., num_nearest_neighbors=0, update_coors=False) for _ in range(gnn_size)])
 
         self.mlp = nn.Sequential(
-            spectral_norm(nn.LazyLinear(hidden_dim)),
+            spectral_norm(nn.Linear(6, hidden_dim)),
             nn.ReLU(),
-            spectral_norm(nn.LazyLinear((self.idx[1] - self.idx[0]) * 6)),
+            spectral_norm(nn.Linear(hidden_dim, (self.idx[1] - self.idx[0]) * 6)),
         )
         
     def forward(self, x, mask=None):
