@@ -57,10 +57,10 @@ class LipSwish_(nn.Module):
     def __init__(self) -> None:
         super().__init__()
 
-        self.swish = nn.SiLU()
+        self.swish = nn.SiLU(True)
 
     def forward(self, x):
-        return self.swish(x).div(1.1)
+        return self.swish(x).div_(1.1)
 
 # SiLU = nn.SiLU if hasattr(nn, 'SiLU') else Swish_
 SiLU = LipSwish_
