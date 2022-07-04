@@ -2,8 +2,6 @@ from models.egnn import EGNN, ResCoorFlow
 from models.egnn.residual_flows.layers import iResBlock
 import torch
 from torch import nn
-from torch.nn.utils.parametrizations import spectral_norm
-
 class EGNN_(nn.Module):
     def __init__(self) -> None:
         super().__init__()
@@ -26,7 +24,7 @@ if __name__ == "__main__":
 
     net = ResCoorFlow(
         hidden_dim=16,
-        block_size=3
+        block_size=1
     )
 
     feats = torch.randn(1, 10, 3)
@@ -35,9 +33,14 @@ if __name__ == "__main__":
 
     feats = feats * mask.unsqueeze(2)
     # feats = net(feats)
+
+    print(feats)
+
     z, logp = net(feats)
     # print(z, logp)
     x, logp = net.inverse(z)
-    print(z, x, feats)
+    
+    print(feats)
+    print(x)
     # x = x * mask.unsqueeze(2)
     # print(x, feats)
