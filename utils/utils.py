@@ -1,9 +1,8 @@
 import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# @torch.jit.script
+@torch.jit.script
 def argmax_criterion(log_prob, log_det):
-    print(log_prob.shape, log_det.shape)
     return - torch.mean(log_prob + log_det)
 
 def create_model(config):
