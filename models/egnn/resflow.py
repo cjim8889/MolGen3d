@@ -28,7 +28,7 @@ class EGNN_(nn.Module):
 
         for egnn in self.egnn:
             feats, _ = egnn(feats, feats)
-            
+
         return feats
 
 class Residual(Bijection):
@@ -87,7 +87,8 @@ class ResCoorFlow(nn.Module):
 
             block = Residual(
                 net,
-                reduce_memory=True
+                reduce_memory=True,
+                reverse=False
             )
 
             self.transforms.append(block)
