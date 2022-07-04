@@ -16,9 +16,9 @@ class EGNN_(nn.Module):
                     dim, 
                     m_dim=m_dim, 
                     num_nearest_neighbors=num_nearest_neighbors,
-                    soft_edges=True,
+                    soft_edges=False,
                     update_coors=False,
-                    norm_feats=True
+                    norm_feats=False
                 ) for _ in range(gnn_size)
             ]
         )
@@ -88,7 +88,7 @@ class ResCoorFlow(nn.Module):
             block = Residual(
                 net,
                 reduce_memory=True,
-                reverse=True
+                reverse=False
             )
 
             self.transforms.append(block)

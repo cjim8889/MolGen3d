@@ -29,17 +29,19 @@ if __name__ == "__main__":
 
     feats = torch.randn(1, 10, 3)
     mask = torch.ones(1, 10, dtype=torch.bool)
-    mask[:, -1] = False
+    mask[:, -2:] = False
 
     feats = feats * mask.unsqueeze(2)
+    # feats += torch.ones_like(feats) * ~mask.unsqueeze(2)
     # feats = net(feats)
+    feats = feats.detach()
 
-    print(feats)
 
     z, logp = net(feats)
     # print(z, logp)
     x, logp = net.inverse(z)
     
+    print(z)
     print(feats)
     print(x)
     # x = x * mask.unsqueeze(2)
