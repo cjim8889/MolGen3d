@@ -4,8 +4,10 @@ from .coupling import MaskedCouplingFlow
 from survae.transforms.bijections import ConditionalBijection, Bijection, ActNormBijection1d
 
 import torch
+from torch.nn.utils.parametrizations import spectral_norm
 from torch import nn
 from egnn_pytorch import EGNN
+from .egnn.egnn import EGNN as LipEGNN
 
 class ARNet(nn.Module):
     def __init__(self, hidden_dim=32, gnn_size=1, idx=(0, 2)):
@@ -13,18 +15,13 @@ class ARNet(nn.Module):
 
         self.idx = idx
 
-        self.net = nn.ModuleList([EGNN(dim=6, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=2., num_nearest_neighbors=6, update_coors=False) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([LipEGNN(dim=6, m_dim=hidden_dim, norm_feats=True, soft_edges=True, coor_weights_clamp_value=2., num_nearest_neighbors=0, update_coors=False) for _ in range(gnn_size)])
 
         self.mlp = nn.Sequential(
-            nn.LazyLinear(hidden_dim),
+            spectral_norm(nn.LazyLinear(hidden_dim)),
             nn.ReLU(),
-            nn.LazyLinear((self.idx[1] - self.idx[0]) * 6),
+            spectral_norm(nn.LazyLinear((self.idx[1] - self.idx[0]) * 6)),
         )
-        # self.mlp = nn.Sequential(
-        #     nn.LazyLinear(hidden_dim),
-        #     nn.ReLU(),
-        #     nn.LazyLinear(6)
-        # )
         
     def forward(self, x, mask=None):
         feats = x.repeat(1, 1, 2)
@@ -59,14 +56,6 @@ class CouplingBlockFlow(Bijection):
             mask = mask_init([i for i in range(idx, min(idx + 2, max_nodes))], max_nodes)
             tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
             self.transforms.append(tr)
-
-        # for idx in range(max_nodes):
-        #     ar_net = ar_net_init()
-        #     mask = mask_init(idx, max_nodes)
-
-        #     tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
-        #     self.transforms.append(tr)
-        
     
     def forward(self, x, context=None, mask=None, logs=None):
         log_prob = torch.zeros(x.shape[0], device=x.device)

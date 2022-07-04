@@ -88,7 +88,7 @@ class ResCoorFlow(nn.Module):
             block = Residual(
                 net,
                 reduce_memory=True,
-                # reverse=True
+                reverse=False
             )
 
             self.transforms.append(block)
