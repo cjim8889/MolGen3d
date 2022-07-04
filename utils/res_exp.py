@@ -50,9 +50,10 @@ class ResCoorExp:
                     
                     with autocast(enabled=False):
                         z, log_det = self.network(input)
-                        print(input.shape, z.shape, log_det.shape)
+                        
 
                         if torch.isnan(z).any() or torch.isnan(log_det).any():
+                            wandb.log({"epoch": epoch, "z": z, "log_det": log_det}, step=step)
                             print("NaN detected")
                             continue
 
