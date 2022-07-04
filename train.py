@@ -29,8 +29,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def weight_init(m):
     if isinstance(m, nn.LazyLinear):
         return
+
     elif isinstance(m, nn.Linear):
-        nn.init.uniform_(m.weight, 0, 0.001)
+        nn.init.xavier_uniform_(m.weight)
 
 if __name__ == "__main__":
     args = parser.parse_args()

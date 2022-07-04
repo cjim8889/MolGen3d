@@ -46,15 +46,16 @@ class ResCoorExp:
                     input = batch_data.pos.to(device)
                     # mask = batch_data.mask.to(device)
 
-                    self.optimiser.zero_grad(set_to_none=True)
+                    self.optimiser.zero_grad()
                     
                     with autocast(enabled=False):
                         z, log_det = self.network(input)
                         
 
                         if torch.isnan(z).any() or torch.isnan(log_det).any():
-                            wandb.log({"epoch": epoch, "z": z, "log_det": log_det}, step=step)
+                            # wandb.log({"epoch": epoch, "z": z, "log_det": log_det}, step=step)
                             print("NaN detected")
+                            print(z, log_det)
                             continue
 
                         log_prob = sum_except_batch(self.base.log_prob(z))

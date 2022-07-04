@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 from torch.nn.utils.parametrizations import spectral_norm
+from .residual_flows.layers.base.lipschitz import LopLinear
 # helper functions
 
 def exists(val):
@@ -182,15 +183,19 @@ class EGNN(nn.Module):
         dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
 
         self.edge_mlp = nn.Sequential(
-            spectral_norm(nn.Linear(edge_input_dim, edge_input_dim * 2)),
+            # nn.Linear(edge_input_dim, edge_input_dim * 2),
+            LopLinear(edge_input_dim, edge_input_dim * 2),
             dropout,
             SiLU(),
-            spectral_norm(nn.Linear(edge_input_dim * 2, m_dim)),
+            # spectral_norm(nn.Linear(edge_input_dim * 2, m_dim)),
+            LopLinear(edge_input_dim * 2, m_dim),
             SiLU()
         )
 
         self.edge_gate = nn.Sequential(
-            spectral_norm(nn.Linear(m_dim, 1)),
+            # spectral_norm(nn.Linear(m_dim, 1)),
+            # LopLinear(m_dim, 1),
+            nn.Linear(),
             nn.Sigmoid()
         ) if soft_edges else None
 
@@ -200,17 +205,21 @@ class EGNN(nn.Module):
         self.m_pool_method = m_pool_method
 
         self.node_mlp = nn.Sequential(
-            spectral_norm(nn.Linear(dim + m_dim, dim * 2)),
+            # spectral_norm(nn.Linear(dim + m_dim, dim * 2)),
+            LopLinear(dim + m_dim, dim * 2),
             dropout,
             SiLU(),
-            spectral_norm(nn.Linear(dim * 2, dim)),
+            # spectral_norm(nn.Linear(dim * 2, dim)),
+            LopLinear(dim * 2, dim),
         ) if update_feats else None
 
         self.coors_mlp = nn.Sequential(
-            spectral_norm(nn.Linear(m_dim, m_dim * 4)),
+            # spectral_norm(nn.Linear(m_dim, m_dim * 4)),
+            LopLinear(m_dim, m_dim * 4),
             dropout,
             SiLU(),
-            spectral_norm(nn.Linear(m_dim * 4, 1))
+            # spectral_norm(nn.Linear(m_dim * 4, 1))
+            LopLinear(m_dim * 4, 1),
         ) if update_coors else None
 
         self.num_nearest_neighbors = num_nearest_neighbors
