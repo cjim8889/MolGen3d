@@ -1,0 +1,3 @@
+[submodule "residual-flows"]
+	path = residual-flows
+	url = https://github.com/VincentStimper/residual-flows.git

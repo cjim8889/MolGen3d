@@ -81,18 +81,21 @@ if __name__ == "__main__":
         )
 
     valid = 0
-    atoms_types = atoms_types.long().numpy()
-    pos = pos.numpy()
+    atoms_types_n = atoms_types.long().numpy()
+    pos_n = pos.numpy()
 
     valid_smiles =[]
     valid_mols = []
     # print(atoms_types[0])
+
+    invalid_idx = []
+
     for idx in range(atoms_types.shape[0]):
         size = mask[idx].to(torch.long).sum()
         atom_decoder_int = [0, 1, 6, 7, 8, 9]
-        atom_ty =[atom_decoder_int[i] for i in atoms_types[idx, :size]]
+        atom_ty =[atom_decoder_int[i] for i in atoms_types_n[idx, :size]]
 
-        pos_t = pos[idx, :size].tolist()
+        pos_t = pos_n[idx, :size].tolist()
 
         if 0 in atom_ty or len(atom_ty) == 0:
             continue
@@ -110,6 +113,7 @@ if __name__ == "__main__":
                 smiles = Chem.MolToSmiles(mol)
 
                 if "." in smiles:
+                    invalid_idx.append(idx)
                     continue
                 else:
                     valid += 1
@@ -117,7 +121,10 @@ if __name__ == "__main__":
                     valid_mols.append(mol)
                     break
         except:
-            pass
+            invalid_idx.append(idx)
+
+    print(invalid_idx)
+    print(pos[invalid_idx].shape, pos[invalid_idx])
     
     # plot = Draw.MolsToGridImage(valid_mols, molsPerRow=4, subImgSize=(500, 500), legends=valid_smiles)
     # number = np.random.randint(0, 10000)
