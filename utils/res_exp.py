@@ -50,6 +50,7 @@ class ResCoorExp:
                     
                     with autocast(enabled=False):
                         z, log_det = self.network(input)
+                        print(input.shape, z.shape, log_det.shape)
 
                         if torch.isnan(z).any() or torch.isnan(log_det).any():
                             print("NaN detected")
@@ -74,16 +75,11 @@ class ResCoorExp:
                     loss_step += loss
                     loss_ep_train += loss
 
-                    # scaler.scale(loss).backward()
-                    # scaler.unscale_(self.optimiser)
-                    # nn.utils.clip_grad_norm_(self.network.parameters(), 1)
-                    
+
                     loss.backward()
 
                     nn.utils.clip_grad_norm_(self.network.parameters(), 1)
                     self.optimiser.step()
-                    # scaler.step(self.optimiser)
-                    # scaler.update()
 
                     step += 1
                     if idx % 10 == 0:
