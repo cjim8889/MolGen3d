@@ -247,7 +247,7 @@ def basic_logdet_estimator(g, x, n_power_series, vareps, coeff_fn, training):
     return logdetgrad
 
 
-def neumann_logdet_estimator(g, x, n_power_series, vareps, coeff_fn, training, mask=None):
+def neumann_logdet_estimator(g, x, n_power_series, vareps, coeff_fn, training):
     vjp = vareps
     neumann_vjp = vareps
     with torch.no_grad():
@@ -256,10 +256,7 @@ def neumann_logdet_estimator(g, x, n_power_series, vareps, coeff_fn, training, m
             neumann_vjp = neumann_vjp + (-1)**k * coeff_fn(k) * vjp
     vjp_jac = torch.autograd.grad(g, x, neumann_vjp, create_graph=training)[0]
 
-    if mask is not None:
-        logdetgrad = torch.sum(vjp_jac.view(x.shape[0], -1) * vareps.view(x.shape[0], -1) * mask.unsqueeze(2), 1)
-    else:
-        logdetgrad = torch.sum(vjp_jac.view(x.shape[0], -1) * vareps.view(x.shape[0], -1), 1)
+    logdetgrad = torch.sum(vjp_jac.view(x.shape[0], -1) * vareps.view(x.shape[0], -1), 1)
 
     return logdetgrad
 
