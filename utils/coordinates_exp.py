@@ -127,7 +127,6 @@ class CoorExp:
                     step += 1
                     if idx % 10 == 0:
                         ll = (loss_step / 10.).item()
-                        print(ll)
                         wandb.log({"epoch": epoch, "NLL": ll}, step=step)
 
                         loss_step = 0
