@@ -55,7 +55,6 @@ class ResCoorExp:
                         if torch.isnan(z).any() or torch.isnan(log_det).any():
                             # wandb.log({"epoch": epoch, "z": z, "log_det": log_det}, step=step)
                             print("NaN detected")
-                            print(z, log_det)
                             continue
 
                         log_prob = sum_except_batch(self.base.log_prob(z))
@@ -86,7 +85,7 @@ class ResCoorExp:
                     step += 1
                     if idx % 10 == 0:
                         ll = (loss_step / 10.).item()
-                        print(ll)
+                        # print(ll)
                         wandb.log({"epoch": epoch, "NLL": ll}, step=step)
 
                         loss_step = 0
