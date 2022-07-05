@@ -64,7 +64,8 @@ class CoorExp:
         input = batch_data.pos.to(device)
         mask = batch_data.mask.to(device)
 
-        self.network(input, mask=mask)
+        with torch.no_grad():
+            self.network(input, mask=mask)
         print(f"Model Parameters: {sum([p.numel() for p in self.network.parameters()])}")
 
         # scaler = GradScaler()
