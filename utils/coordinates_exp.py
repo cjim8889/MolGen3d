@@ -60,7 +60,11 @@ class CoorExp:
         self.total_logged = 0
 
     def train(self):
-        self.network(torch.zeros(1, 29, 3, device=device), mask=torch.ones(1, 29, device=device, dtype=torch.bool))
+        batch_data = next(iter(self.train_loader))
+        input = batch_data.pos.to(device)
+        mask = batch_data.mask.to(device)
+
+        self.network(input, mask=mask)
         print(f"Model Parameters: {sum([p.numel() for p in self.network.parameters()])}")
 
         # scaler = GradScaler()
@@ -123,6 +127,7 @@ class CoorExp:
                     step += 1
                     if idx % 10 == 0:
                         ll = (loss_step / 10.).item()
+                        print(ll)
                         wandb.log({"epoch": epoch, "NLL": ll}, step=step)
 
                         loss_step = 0

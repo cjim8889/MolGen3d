@@ -4,8 +4,6 @@ import torch.nn.functional as F
 
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
-from torch.nn.utils.parametrizations import spectral_norm
-from .residual_flows.layers.base.lipschitz import LopLinear
 # helper functions
 
 def exists(val):
@@ -64,7 +62,7 @@ class LipSwish_(nn.Module):
         return self.swish(x).div_(1.1)
 
 # SiLU = nn.SiLU if hasattr(nn, 'SiLU') else Swish_
-SiLU = LipSwish_
+# SiLU = LipSwish_
 # helper classes
 
 # this follows the same strategy for normalization as done in SE3 Transformers
@@ -170,7 +168,8 @@ class EGNN(nn.Module):
         valid_radius = float('inf'),
         m_pool_method = 'sum',
         soft_edges = False,
-        coor_weights_clamp_value = None
+        coor_weights_clamp_value = None,
+        activation = "SiLU"
     ):
         super().__init__()
         assert m_pool_method in {'sum', 'mean'}, 'pool method must be either sum or mean'
@@ -179,23 +178,27 @@ class EGNN(nn.Module):
         self.fourier_features = fourier_features
 
         edge_input_dim = (fourier_features * 2) + (dim * 2) + edge_dim + 1
+
+        if activation == "LipSwish":
+            self.activation = LipSwish_
+        else:
+            self.activation = getattr(nn, activation)
         
         dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
 
         self.edge_mlp = nn.Sequential(
-            # nn.Linear(edge_input_dim, edge_input_dim * 2),
-            LopLinear(edge_input_dim, edge_input_dim * 2),
+            nn.Linear(edge_input_dim, edge_input_dim * 2),
             dropout,
-            SiLU(),
-            # spectral_norm(nn.Linear(edge_input_dim * 2, m_dim)),
-            LopLinear(edge_input_dim * 2, m_dim),
-            SiLU()
+            self.activation(),
+            nn.Linear(edge_input_dim * 2, m_dim),
+            # LopLinear(edge_input_dim * 2, m_dim),
+            self.activation()
         )
 
         self.edge_gate = nn.Sequential(
             # spectral_norm(nn.Linear(m_dim, 1)),
             # LopLinear(m_dim, 1),
-            nn.Linear(),
+            nn.Linear(m_dim, 1),
             nn.Sigmoid()
         ) if soft_edges else None
 
@@ -205,21 +208,17 @@ class EGNN(nn.Module):
         self.m_pool_method = m_pool_method
 
         self.node_mlp = nn.Sequential(
-            # spectral_norm(nn.Linear(dim + m_dim, dim * 2)),
-            LopLinear(dim + m_dim, dim * 2),
+            nn.Linear(dim + m_dim, dim * 2),
             dropout,
-            SiLU(),
-            # spectral_norm(nn.Linear(dim * 2, dim)),
-            LopLinear(dim * 2, dim),
+            self.activation(),
+            nn.Linear(dim * 2, dim),
         ) if update_feats else None
 
         self.coors_mlp = nn.Sequential(
-            # spectral_norm(nn.Linear(m_dim, m_dim * 4)),
-            LopLinear(m_dim, m_dim * 4),
+            nn.Linear(m_dim, m_dim * 4),
             dropout,
-            SiLU(),
-            # spectral_norm(nn.Linear(m_dim * 4, 1))
-            LopLinear(m_dim * 4, 1),
+            self.activation(),
+            nn.Linear(m_dim * 4, 1),
         ) if update_coors else None
 
         self.num_nearest_neighbors = num_nearest_neighbors
@@ -237,9 +236,6 @@ class EGNN(nn.Module):
             nn.init.normal_(module.weight, std = self.init_eps)
 
     def forward(self, feats, coors, edges = None, mask = None, adj_mat = None):
-    # def forward(self, x, edges = None, mask = None, adj_mat = None):
-        # feats = x["feats"]
-        # coors = x["coors"]
         b, n, d, device, fourier_features, num_nearest, valid_radius, only_sparse_neighbors = *feats.shape, feats.device, self.fourier_features, self.num_nearest_neighbors, self.valid_radius, self.only_sparse_neighbors
 
         if exists(mask):

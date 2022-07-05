@@ -17,6 +17,9 @@ parser.add_argument("--optimiser", help="Optimiser", type=str, default="Adam")
 parser.add_argument("--lr", help="Learning rate", type=float, default=1e-03)
 parser.add_argument("--weight_decay", help="Weight decay", type=float, default=1e-06)
 
+parser.add_argument("--activation", help="Activation", type=str, default="LipSwish")
+parser.add_argument("--act_norm", help="Activation norm", type=bool, default=True)
+
 parser.add_argument("--scheduler", help="Scheduler", type=str, default="StepLR")
 parser.add_argument("--scheduler_step", help="Scheduler step", type=int, default=3)
 parser.add_argument("--scheduler_gamma", help="Scheduler gamma", type=float, default=0.96)
@@ -56,10 +59,13 @@ if __name__ == "__main__":
             hidden_dim=args.hidden_dim,
             block_size=args.block_size,
             gnn_size=args.gnn_size,
-            base=args.base
+            base=args.base,
+            activation=args.activation,
+            act_norm=args.act_norm,
         )
 
         exp = CoorExp(config=config)
+        
     if args.type  == "vert":
         config = dict(
             epochs=args.epochs,
@@ -99,6 +105,8 @@ if __name__ == "__main__":
             hidden_dim=args.hidden_dim,
             block_size=args.block_size,
             gnn_size=args.gnn_size,
+            activation=args.activation,
+            act_norm=args.act_norm,
         )
 
         exp = ResCoorExp(config=config)

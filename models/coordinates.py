@@ -9,11 +9,13 @@ class CoorFlow(nn.Module):
         hidden_dim=64, 
         gnn_size=1,
         block_size=6,
-        max_nodes=29) -> None:
+        max_nodes=29,
+        activation='LipSwish',
+        act_norm=True) -> None:
 
         super().__init__()
 
-        self.transforms = nn.ModuleList([CouplingBlockFlow(last_dimension=3, max_nodes=max_nodes, ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size)) for _ in range(block_size)])
+        self.transforms = nn.ModuleList([CouplingBlockFlow(last_dimension=3, act_norm=act_norm, max_nodes=max_nodes, ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size, activation=activation)) for _ in range(block_size)])
 
     def forward(self, x, context=None, mask=None, logs=None):
         log_prob = torch.zeros(x.shape[0], device=x.device)
@@ -28,7 +30,7 @@ class CoorFlow(nn.Module):
         
         return x, log_prob
 
-    def inverse(self, z, context=None, mask=None):
+    def inverse(self, z, context=None, mask=None, logs=None):
         log_prob = torch.zeros(z.shape[0], device=z.device)
 
         for idx in range(len(self.transforms) - 1, -1, -1):
