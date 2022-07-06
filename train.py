@@ -18,7 +18,7 @@ parser.add_argument("--lr", help="Learning rate", type=float, default=1e-03)
 parser.add_argument("--weight_decay", help="Weight decay", type=float, default=1e-06)
 
 parser.add_argument("--activation", help="Activation", type=str, default="LipSwish")
-parser.add_argument("--actnorm", help="Activation norm", action=argparse.BooleanOptionalAction, default=False)
+parser.add_argument("--actnorm", help="Activation norm", type=int, default=0)
 
 parser.add_argument("--scheduler", help="Scheduler", type=str, default="StepLR")
 parser.add_argument("--scheduler_step", help="Scheduler step", type=int, default=3)
@@ -61,8 +61,9 @@ if __name__ == "__main__":
             gnn_size=args.gnn_size,
             base=args.base,
             activation=args.activation,
-            act_norm=args.actnorm,
+            act_norm=args.actnorm != 0,
         )
+
 
         exp = CoorExp(config=config)
         
