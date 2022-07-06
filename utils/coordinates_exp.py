@@ -62,6 +62,8 @@ class CoorExp:
     def train(self):
         batch_data = next(iter(self.train_loader))
         input = batch_data.pos.to(device)
+        input = torch.cat([-input, input], dim=-1)
+
         mask = batch_data.mask.to(device)
 
         with torch.no_grad():
@@ -79,6 +81,9 @@ class CoorExp:
                 for idx, batch_data in enumerate(self.train_loader):
                     
                     input = batch_data.pos.to(device)
+                    input = torch.cat([-input, input], dim=-1)
+
+
                     mask = batch_data.mask.to(device)
 
                     self.optimiser.zero_grad(set_to_none=True)

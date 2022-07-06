@@ -15,6 +15,18 @@ def create_mask_equivariant(idx, max_size, invert=False):
 
     return mask.to(torch.bool)
 
+def create_mask_col(idx, max_shape, invert=False):
+    mask = torch.zeros(max_shape, dtype=torch.float32)
+    
+    mask[idx] = 1.
+
+    mask = mask.view(1, 1, max_shape)
+
+    if not invert:
+        mask = 1 - mask
+
+    return mask.to(torch.bool)
+
 def create_mask_ar(idx, max_shape, invert=False):
     mask = torch.zeros(max_shape, dtype=torch.float32)
 

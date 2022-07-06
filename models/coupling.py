@@ -21,12 +21,14 @@ class MaskedCouplingFlow(Bijection):
         return self._transform(z, mask=mask, forward=False)
 
     def _transform(self, z, mask=None, forward=True, logs=None):
-
-        self_mask = self.mask.unsqueeze(2)
+        self_mask = self.mask
 
         z_masked = z * self_mask
 
         alpha, beta = self.ar_net(z_masked, mask=mask).chunk(2, dim=self.split_dim)
+
+        alpha = alpha.squeeze(self.split_dim)
+        beta = beta.squeeze(self.split_dim)
 
         # scaling factor idea inspired by UvA github to stabilise training 
         scaling_factor = self.scaling_factor.exp().view(1, 1, -1)

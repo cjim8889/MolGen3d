@@ -1,6 +1,10 @@
+from venv import create
 from models.egnn import EGNN, ResCoorFlow
 from models.egnn.residual_flows.layers import iResBlock
 from models.actnorm import ActNorm
+from models.utils import create_mask_col
+from models.block import ARNet, CouplingBlockFlow
+from models.coordinates import CoorFlow
 import torch
 from torch import nn
 class EGNN_(nn.Module):
@@ -28,15 +32,26 @@ if __name__ == "__main__":
     #     block_size=1
     # )
 
-    feats = torch.randn(10, 10, 3)
-    mask = torch.ones(10, 10, dtype=torch.bool)
+    # feats = torch.randn(10, 10, 3)
+    # mask = torch.ones(10, 10, dtype=torch.bool)
 
-    mask[:, -2:] = False
+    # mask[:, -2:] = False
 
-    net = ActNorm(3)
+    # net = ActNorm(3)
+    # net = ARNet(hidden_dim=16, gnn_size=1, idx=0, activation='LipSwish')
+    # mask = create_mask_col(0, 6)
+    # print(mask, mask.shape)
+    # net = CouplingBlockFlow(last_dimension=6)
+    net = CoorFlow(hidden_dim=64, gnn_size=1, block_size=1)
+    val = torch.randn(1, 29, 6)
+    mask = torch.ones(1, 29, dtype=torch.bool)
+    
 
-    k, ldj = net(feats, mask=mask)
-    print(feats[0], k[0])
+    out, _ = net(val, mask=mask)
+    print(out.shape)
+
+    # k, ldj = net(feats, mask=mask)
+    # print(feats[0], k[0])
     # net.initialize(feats.view(feats.shape[0] * feats.shape[1], -1), mask.view(feats.shape[0] * feats.shape[1], -1))
 
     # mask = torch.ones(1, 10, dtype=torch.bool)
