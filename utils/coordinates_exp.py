@@ -103,6 +103,7 @@ class CoorExp:
                         loss = argmax_criterion(log_prob, log_det)
 
                     if (loss > 1e3 and epoch > 5) or torch.isnan(loss):
+                        # print(log_det, z)
                         if self.total_logged < 30:
                             torch.save({
                             'epoch': epoch,
@@ -133,6 +134,7 @@ class CoorExp:
                     step += 1
                     if idx % 10 == 0:
                         ll = (loss_step / 10.).item()
+                        print(ll)
                         wandb.log({"epoch": epoch, "NLL": ll}, step=step)
 
                         loss_step = 0

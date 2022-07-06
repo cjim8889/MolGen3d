@@ -29,7 +29,7 @@ class ARNet(nn.Module):
         for net in self.net:
             feats, coors = net(feats, coors, mask=mask)
         
-
+        feats = feats * mask.unsqueeze(2)
         feats = self.mlp(feats).reshape(x.shape[0], x.shape[1], 2, -1)
 
         feats = nn.functional.pad(
