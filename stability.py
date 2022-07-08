@@ -44,12 +44,12 @@ if __name__ == "__main__":
     # mask = batch.mask
     batch_size = 1000
 
-    coor_net = CoorFlow(hidden_dim=128, gnn_size=1, block_size=8)
+    coor_net = CoorFlow(hidden_dim=64, gnn_size=2, block_size=6, activation="SiLU", act_norm=False)
     coor_net.load_state_dict(
-        torch.load("model_checkpoint_33ujozby_480.pt", map_location="cpu")['model_state_dict']
+        torch.load("model_checkpoint_efaxw4q2_310.pt", map_location="cpu")['model_state_dict']
     )
 
-    z = base.sample(sample_shape=(batch_size, 29, 3))
+    z = base.sample(sample_shape=(batch_size, 29, 6))
     mask = torch.ones(batch_size, 29).to(torch.bool)
     mask_size = torch.randint(3, 29, (batch_size,))
     
@@ -63,7 +63,8 @@ if __name__ == "__main__":
     with torch.no_grad():
         pos, _ = coor_net.inverse(z, mask=mask)
 
-    # # print(pos[0])
+    pos = pos[:, :, 3:]
+    # # # print(pos[0])
     net = AtomFlow(
         hidden_dim=64,
         block_size=3
@@ -123,8 +124,8 @@ if __name__ == "__main__":
         except:
             invalid_idx.append(idx)
 
-    print(invalid_idx)
-    print(pos[invalid_idx].shape, pos[invalid_idx])
+    # print(invalid_idx)
+    # print(pos[invalid_idsx].shape, pos[invalid_idx])
     
     # plot = Draw.MolsToGridImage(valid_mols, molsPerRow=4, subImgSize=(500, 500), legends=valid_smiles)
     # number = np.random.randint(0, 10000)
@@ -136,4 +137,4 @@ if __name__ == "__main__":
     # # # print(atom_types, pos[0:1], x[0: 1])
 
     
-    # # # print(pos[0])
+    # # # # print(pos[0])

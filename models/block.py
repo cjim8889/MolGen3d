@@ -20,6 +20,7 @@ class ARNet(nn.Module):
             nn.Linear(12, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, 2),
+            nn.Sigmoid()
         )
         
     def forward(self, x, mask=None):
