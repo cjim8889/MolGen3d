@@ -23,7 +23,6 @@ class MaskedCouplingFlow(Bijection):
     def _transform(self, z, mask=None, forward=True, logs=None):
 
         self_mask = self.mask.unsqueeze(2)
-
         z_masked = z * self_mask
 
         alpha, beta = self.ar_net(z_masked, mask=mask).chunk(2, dim=self.split_dim)

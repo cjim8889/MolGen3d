@@ -80,74 +80,128 @@ class CoorsNorm(nn.Module):
         normed_coors = coors / norm.clamp(min = self.eps)
         return normed_coors * self.scale
 
-# global linear attention
-
-class Attention(nn.Module):
-    def __init__(self, dim, heads = 8, dim_head = 64):
-        super().__init__()
-        inner_dim = heads * dim_head
-        self.heads = heads
-        self.scale = dim_head ** -0.5
-
-        self.to_q = nn.Linear(dim, inner_dim, bias = False)
-        self.to_kv = nn.Linear(dim, inner_dim * 2, bias = False)
-        self.to_out = nn.Linear(inner_dim, dim)
-
-    def forward(self, x, context, mask = None):
-        h = self.heads
-
-        q = self.to_q(x)
-        kv = self.to_kv(context).chunk(2, dim = -1)
-
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = h), (q, *kv))
-        dots = einsum('b h i d, b h j d -> b h i j', q, k) * self.scale
-
-        if exists(mask):
-            mask_value = -torch.finfo(dots.dtype).max
-            mask = rearrange(mask, 'b n -> b () () n')
-            dots.masked_fill_(~mask, mask_value)
-
-        attn = dots.softmax(dim = -1)
-        out = einsum('b h i j, b h j d -> b h i d', attn, v)
-
-        out = rearrange(out, 'b h n d -> b n (h d)', h = h)
-        return self.to_out(out)
-
-class GlobalLinearAttention(nn.Module):
+class ModifiedPosEGNN(nn.Module):
     def __init__(
         self,
-        *,
-        dim,
-        heads = 8,
-        dim_head = 64
+        edge_dim = 0,
+        m_dim = 16,
+        fourier_features = 0,
+        num_nearest_neighbors = 0,
+        dropout = 0.0,
+        init_eps = 1e-3,
+        norm_coors = False,
+        norm_coors_scale_init = 1e-2,
+        only_sparse_neighbors = False,
+        valid_radius = float('inf'),
+        m_pool_method = 'sum',
+        soft_edges = False,
+        coor_weights_clamp_value = None,
+        activation = "SiLU"
     ):
         super().__init__()
-        self.norm_seq = nn.LayerNorm(dim)
-        self.norm_queries = nn.LayerNorm(dim)
-        self.attn1 = Attention(dim, heads, dim_head)
-        self.attn2 = Attention(dim, heads, dim_head)
+        assert m_pool_method in {'sum', 'mean'}, 'pool method must be either sum or mean'
+        # assert update_feats or update_coors, 'you must update either features, coordinates, or both'
 
-        self.ff = nn.Sequential(
-            nn.LayerNorm(dim),
-            nn.Linear(dim, dim * 4),
-            nn.GELU(),
-            nn.Linear(dim * 4, dim)
+        self.fourier_features = fourier_features
+
+        edge_input_dim = (fourier_features * 2) + edge_dim + 1
+
+        if activation == "LipSwish":
+            self.activation = LipSwish_
+        else:
+            self.activation = getattr(nn, activation)
+        
+        dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
+
+        self.edge_mlp = nn.Sequential(
+            nn.Linear(edge_input_dim, edge_input_dim * 2),
+            dropout,
+            self.activation(),
+            nn.Linear(edge_input_dim * 2, m_dim),
+            self.activation()
         )
 
-    def forward(self, x, queries, mask = None):
-        res_x, res_queries = x, queries
-        x, queries = self.norm_seq(x), self.norm_queries(queries)
+        self.edge_gate = nn.Sequential(
+            nn.Linear(m_dim, 1),
+            nn.Sigmoid()
+        ) if soft_edges else None
 
-        induced = self.attn1(queries, x, mask = mask)
-        out     = self.attn2(x, induced)
+        self.coors_norm = CoorsNorm(scale_init = norm_coors_scale_init) if norm_coors else nn.Identity()
 
-        x =  out + res_x
-        queries = induced + res_queries
+        self.m_pool_method = m_pool_method
 
-        x = self.ff(x) + x
-        return x, queries
+        self.coors_mlp = nn.Sequential(
+            nn.Linear(m_dim, m_dim * 4),
+            dropout,
+            self.activation(),
+            nn.Linear(m_dim * 4, 1),
+        )
 
-# classes
+        self.num_nearest_neighbors = num_nearest_neighbors
+        self.only_sparse_neighbors = only_sparse_neighbors
+        self.valid_radius = valid_radius
+
+        self.coor_weights_clamp_value = coor_weights_clamp_value
+
+        self.init_eps = init_eps
+        self.apply(self.init_)
+
+    def init_(self, module):
+        if type(module) in {nn.Linear}:
+            # seems to be needed to keep the network from exploding to NaN with greater depths
+            nn.init.normal_(module.weight, std = self.init_eps)
+
+    def forward(self, coors, edges = None, mask = None):
+        b, n, d, device, fourier_features, num_nearest, valid_radius, only_sparse_neighbors = *coors.shape, coors.device, self.fourier_features, self.num_nearest_neighbors, self.valid_radius, self.only_sparse_neighbors
+
+        if exists(mask):
+            num_nodes = mask.sum(dim = -1)
+
+        rel_coors = rearrange(coors, 'b i d -> b i () d') - rearrange(coors, 'b j d -> b () j d')
+        rel_dist = (rel_coors ** 2).sum(dim = -1, keepdim = True)
+
+        i = j = n
+
+        if fourier_features > 0:
+            rel_dist = fourier_encode_dist(rel_dist, num_encodings = fourier_features)
+            rel_dist = rearrange(rel_dist, 'b i j () d -> b i j d')
+
+        edge_input = rel_dist
+
+        if exists(edges):
+            edge_input = torch.cat((edge_input, edges), dim = -1)
+
+        m_ij = self.edge_mlp(edge_input)
+
+        if exists(self.edge_gate):
+            m_ij = m_ij * self.edge_gate(m_ij)
+
+        if exists(mask):
+            mask_i = rearrange(mask, 'b i -> b i ()')
+            mask_j = rearrange(mask, 'b j -> b () j')
+            mask = mask_i * mask_j
+
+        if exists(self.coors_mlp):
+            coor_weights = self.coors_mlp(m_ij)
+            coor_weights = rearrange(coor_weights, 'b i j () -> b i j')
+
+            rel_coors = self.coors_norm(rel_coors)
+
+            if exists(mask):
+                coor_weights.masked_fill_(~mask, 0.)
+
+            if exists(self.coor_weights_clamp_value):
+                clamp_value = self.coor_weights_clamp_value
+                coor_weights.clamp_(min = -clamp_value, max = clamp_value)
+
+            coors_out = einsum('b i j, b i j c -> b i c', coor_weights, rel_coors) + coors
+        else:
+            coors_out = coors
+
+        return coors_out
+
+
+
 
 class EGNN(nn.Module):
     def __init__(

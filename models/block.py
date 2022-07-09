@@ -4,10 +4,8 @@ from .coupling import MaskedCouplingFlow
 from survae.transforms.bijections import ConditionalBijection, Bijection, ActNormBijection1d
 
 import torch
-from torch.nn.utils.parametrizations import spectral_norm
 from torch import nn
-# from egnn_pytorch import EGNN
-from .egnn.egnn import EGNN as ModifiedEGNN
+from .egnn.egnn import ModifiedPosEGNN
 from .actnorm import ActNorm
 
 class ARNet(nn.Module):
@@ -16,31 +14,27 @@ class ARNet(nn.Module):
 
         self.idx = idx
 
-        self.net = nn.ModuleList([ModifiedEGNN(dim=6, m_dim=hidden_dim, norm_feats=True, activation=activation, soft_edges=True, coor_weights_clamp_value=2., num_nearest_neighbors=0, update_coors=False) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([ModifiedPosEGNN(m_dim=hidden_dim, norm_coors=True, dropout=0.1, activation=activation, soft_edges=True, coor_weights_clamp_value=2.) for _ in range(gnn_size)])
 
-        self.mlp = nn.Sequential(
-            # spectral_norm(nn.Linear(6, hidden_dim)),
-            nn.Linear(6, hidden_dim),
-            nn.ReLU(),
-            # spectral_norm(nn.Linear(hidden_dim, (self.idx[1] - self.idx[0]) * 6)),
-            nn.Linear(hidden_dim, (self.idx[1] - self.idx[0]) * 6),
-        )
+        # self.mlp = nn.Sequential(
+        #     nn.Linear(6, hidden_dim),
+        #     nn.ReLU(),
+        #     nn.Linear(hidden_dim, (self.idx[1] - self.idx[0]) * 6),
+        # )
         
     def forward(self, x, mask=None):
-        feats = x.repeat(1, 1, 2)
-        coors = x
-
+        coors = x.repeat(1, 1, 2)
         for net in self.net:
-            feats, coors = net(feats, coors, mask=mask)
+            coors = net(coors, mask=mask)
         
-        tmp = feats * mask.unsqueeze(2)
+        coors = coors * mask.unsqueeze(2)
 
-        feats = torch.sum(tmp, dim=1) / tmp.norm(dim=(1, 2)).unsqueeze(1)
+        # feats = torch.sum(tmp, dim=1) / tmp.norm(dim=(1, 2)).unsqueeze(1)
 
         # feats = torch.sum(feats * mask.unsqueeze(2), dim=1) / torch.sum(mask, dim=1, keepdim=True)
-        feats = self.mlp(feats).view(x.shape[0], self.idx[1] - self.idx[0], 6)
-        feats = nn.functional.pad(feats, (0, 0, self.idx[0], 29 - self.idx[1], 0, 0), 'constant', 0)
-        return feats
+        # feats = self.mlp(feats).view(x.shape[0], self.idx[1] - self.idx[0], 6)
+        # feats = nn.functional.pad(feats, (0, 0, self.idx[0], 29 - self.idx[1], 0, 0), 'constant', 0)
+        return coors
 
 def ar_net_init(hidden_dim=128, gnn_size=2, activation='LipSwish'):
     def _init(idx):
