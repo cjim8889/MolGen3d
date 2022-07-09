@@ -44,9 +44,9 @@ if __name__ == "__main__":
     # mask = batch.mask
     batch_size = 1000
 
-    coor_net = CoorFlow(hidden_dim=64, gnn_size=2, block_size=6, activation="SiLU", act_norm=False)
+    coor_net = CoorFlow(hidden_dim=64, gnn_size=1, block_size=8, activation="SiLU", act_norm=False)
     coor_net.load_state_dict(
-        torch.load("model_checkpoint_efaxw4q2_310.pt", map_location="cpu")['model_state_dict']
+        torch.load("model_checkpoint_395lxfrg_390.pt", map_location="cpu")['model_state_dict']
     )
 
     z = base.sample(sample_shape=(batch_size, 29, 6))
