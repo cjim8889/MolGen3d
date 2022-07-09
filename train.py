@@ -34,7 +34,7 @@ def weight_init(m):
         return
 
     elif isinstance(m, nn.Linear):
-        nn.init.xavier_uniform_(m.weight)
+        nn.init.uniform_(m.weight, 0, 0.001)
 
 if __name__ == "__main__":
     args = parser.parse_args()
