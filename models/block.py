@@ -14,27 +14,31 @@ class ARNet(nn.Module):
 
         self.idx = idx
 
-        self.net = nn.ModuleList([ModifiedPosEGNN(m_dim=hidden_dim, norm_coors=True, activation=activation, soft_edges=True, coor_weights_clamp_value=2.) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([ModifiedPosEGNN(m_dim=hidden_dim, norm_coors=True, activation=activation, fourier_features=1 ,soft_edges=True, coor_weights_clamp_value=2.) for _ in range(gnn_size)])
 
-        # self.mlp = nn.Sequential(
-        #     nn.Linear(6, hidden_dim),
-        #     nn.ReLU(),
-        #     nn.Linear(hidden_dim, (self.idx[1] - self.idx[0]) * 6),
-        # )
+        self.mlp = nn.Sequential(
+            nn.Linear(3, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, (self.idx[1] - self.idx[0]) * 6),
+            nn.Sigmoid()
+        )
+
+        self.eps = 1e-6
         
     def forward(self, x, mask=None):
-        coors = x.repeat(1, 1, 2)
+        coors = x
         for net in self.net:
             coors = net(coors, mask=mask)
         
-        coors = coors * mask.unsqueeze(2)
+        tmp = coors * mask.unsqueeze(2)
 
-        # feats = torch.sum(tmp, dim=1) / tmp.norm(dim=(1, 2)).unsqueeze(1)
+        feats = torch.sum(tmp, dim=1) / (tmp.norm(dim=(1, 2)).unsqueeze(1) + self.eps)
 
         # feats = torch.sum(feats * mask.unsqueeze(2), dim=1) / torch.sum(mask, dim=1, keepdim=True)
-        # feats = self.mlp(feats).view(x.shape[0], self.idx[1] - self.idx[0], 6)
-        # feats = nn.functional.pad(feats, (0, 0, self.idx[0], 29 - self.idx[1], 0, 0), 'constant', 0)
-        return coors
+        feats = self.mlp(feats).view(x.shape[0], self.idx[1] - self.idx[0], 6)
+        feats = nn.functional.pad(feats, (0, 0, self.idx[0], 29 - self.idx[1], 0, 0), 'constant', 0)
+        
+        return feats
 
 def ar_net_init(hidden_dim=128, gnn_size=2, activation='LipSwish'):
     def _init(idx):

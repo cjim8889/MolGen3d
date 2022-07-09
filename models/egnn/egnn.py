@@ -131,10 +131,10 @@ class ModifiedPosEGNN(nn.Module):
         self.m_pool_method = m_pool_method
 
         self.coors_mlp = nn.Sequential(
-            nn.Linear(m_dim, m_dim * 4),
+            nn.Linear(m_dim, m_dim),
             dropout,
             self.activation(),
-            nn.Linear(m_dim * 4, 1),
+            nn.Linear(m_dim, 1),
         )
 
         self.num_nearest_neighbors = num_nearest_neighbors
