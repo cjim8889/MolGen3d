@@ -131,10 +131,10 @@ class ModifiedPosEGNN(nn.Module):
         self.m_pool_method = m_pool_method
 
         self.coors_mlp = nn.Sequential(
-            nn.Linear(m_dim, m_dim),
+            nn.Linear(m_dim, m_dim * 2),
             dropout,
             self.activation(),
-            nn.Linear(m_dim, 1),
+            nn.Linear(m_dim * 2, 3),
         )
 
         self.num_nearest_neighbors = num_nearest_neighbors
@@ -154,13 +154,13 @@ class ModifiedPosEGNN(nn.Module):
     def forward(self, coors, edges = None, mask = None):
         b, n, d, device, fourier_features, num_nearest, valid_radius, only_sparse_neighbors = *coors.shape, coors.device, self.fourier_features, self.num_nearest_neighbors, self.valid_radius, self.only_sparse_neighbors
 
-        if exists(mask):
-            num_nodes = mask.sum(dim = -1)
+        # if exists(mask):
+            # num_nodes = mask.sum(dim = -1)
 
         rel_coors = rearrange(coors, 'b i d -> b i () d') - rearrange(coors, 'b j d -> b () j d')
         rel_dist = (rel_coors ** 2).sum(dim = -1, keepdim = True)
 
-        i = j = n
+        # i = j = n
 
         if fourier_features > 0:
             rel_dist = fourier_encode_dist(rel_dist, num_encodings = fourier_features)
@@ -181,10 +181,10 @@ class ModifiedPosEGNN(nn.Module):
             mask_j = rearrange(mask, 'b j -> b () j')
             mask = mask_i * mask_j
 
+            mask = rearrange(mask, '... -> ... ()')
+
         if exists(self.coors_mlp):
             coor_weights = self.coors_mlp(m_ij)
-            coor_weights = rearrange(coor_weights, 'b i j () -> b i j')
-
             rel_coors = self.coors_norm(rel_coors)
 
             if exists(mask):
@@ -194,7 +194,7 @@ class ModifiedPosEGNN(nn.Module):
                 clamp_value = self.coor_weights_clamp_value
                 coor_weights.clamp_(min = -clamp_value, max = clamp_value)
 
-            coors_out = einsum('b i j, b i j c -> b i c', coor_weights, rel_coors) + coors
+            coors_out = einsum('b i j c, b i j c -> b i c', coor_weights, rel_coors) + coors
         else:
             coors_out = coors
 

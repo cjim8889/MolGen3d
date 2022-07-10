@@ -1,6 +1,7 @@
 from models.egnn import ModifiedPosEGNN, ResCoorFlow
 from models.coordinates import CoorFlow
 from models.block import ARNet
+from models.egnn import ModifiedPosEGNN
 from models.egnn.residual_flows.layers import iResBlock
 from models.actnorm import ActNorm
 import torch
@@ -39,9 +40,9 @@ if __name__ == "__main__":
     # net = ARNet(hidden_dim=64, gnn_size=1, idx=(0, 2), activation='LipSwish')
     net = CoorFlow(hidden_dim=16, gnn_size=1, block_size=2, activation='SiLU', act_norm=False)
     
-    # print(feats)
+    print(feats)
     feats, _ = net(feats, mask=mask)
-    # print(feats)
+    print(feats)
     # net.initialize(feats.view(feats.shape[0] * feats.shape[1], -1), mask.view(feats.shape[0] * feats.shape[1], -1))
 
     # mask = torch.ones(1, 10, dtype=torch.bool)
