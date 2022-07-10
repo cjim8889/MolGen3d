@@ -16,8 +16,14 @@ class ARNet(nn.Module):
 
         self.net = nn.ModuleList([ModifiedPosEGNN(m_dim=hidden_dim, norm_coors=True, activation=activation, fourier_features=1 ,soft_edges=True, coor_weights_clamp_value=2.) for _ in range(gnn_size)])
 
-        self.mlp = nn.Sequential(
+        self.mlp_feats = nn.Sequential(
             nn.Linear(3, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+        )
+
+        self.mlp = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, (self.idx[1] - self.idx[0]) * 6),
             nn.Sigmoid()
@@ -30,11 +36,12 @@ class ARNet(nn.Module):
         for net in self.net:
             coors = net(coors, mask=mask)
         
-        tmp = coors * mask.unsqueeze(2)
+        tmp = self.mlp_feats(coors)
+        tmp = tmp * mask.unsqueeze(2)
+
 
         feats = torch.sum(tmp, dim=1) / (tmp.norm(dim=(1, 2)).unsqueeze(1) + self.eps)
 
-        # feats = torch.sum(feats * mask.unsqueeze(2), dim=1) / torch.sum(mask, dim=1, keepdim=True)
         feats = self.mlp(feats).view(x.shape[0], self.idx[1] - self.idx[0], 6)
         feats = nn.functional.pad(feats, (0, 0, self.idx[0], 29 - self.idx[1], 0, 0), 'constant', 0)
         
