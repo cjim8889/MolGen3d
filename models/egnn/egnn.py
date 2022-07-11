@@ -194,7 +194,7 @@ class ModifiedPosEGNN(nn.Module):
                 clamp_value = self.coor_weights_clamp_value
                 coor_weights.clamp_(min = -clamp_value, max = clamp_value)
 
-            coors_out = einsum('b i j c, b i j c -> b i c', coor_weights, rel_coors) + coors
+            coors_out = einsum('b i j c, b i j c -> b i c', coor_weights, rel_coors)
         else:
             coors_out = coors
 
