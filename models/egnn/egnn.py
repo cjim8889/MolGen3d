@@ -104,7 +104,7 @@ class ModifiedPosEGNN(nn.Module):
 
         self.fourier_features = fourier_features
 
-        edge_input_dim = (fourier_features * 2) + edge_dim + 1
+        edge_input_dim = 6 + (fourier_features * 2) + edge_dim + 1
 
         if activation == "LipSwish":
             self.activation = LipSwish_
@@ -162,11 +162,18 @@ class ModifiedPosEGNN(nn.Module):
 
         # i = j = n
 
+        feats_j = rearrange(coors, 'b j d -> b () j d')
+        feats_i = rearrange(coors, 'b i d -> b i () d')
+
+        feats_i, feats_j = broadcast_tensors(feats_i, feats_j)
+
         if fourier_features > 0:
             rel_dist = fourier_encode_dist(rel_dist, num_encodings = fourier_features)
             rel_dist = rearrange(rel_dist, 'b i j () d -> b i j d')
 
-        edge_input = rel_dist
+        edge_input = torch.cat((feats_i, feats_j, rel_dist), dim = -1)
+
+        # edge_input = rel_dist
 
         if exists(edges):
             edge_input = torch.cat((edge_input, edges), dim = -1)

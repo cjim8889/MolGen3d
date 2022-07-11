@@ -14,10 +14,10 @@ class ARNet(nn.Module):
 
         self.idx = idx
 
-        self.net = nn.ModuleList([ModifiedPosEGNN(m_dim=hidden_dim, activation=activation, fourier_features=2, soft_edges=True) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([ModifiedPosEGNN(m_dim=hidden_dim, activation=activation, fourier_features=2, soft_edges=True, norm_coors=True) for _ in range(gnn_size)])
 
         self.mlp = nn.Sequential(
-            nn.Linear(6, hidden_dim),
+            nn.Linear(3, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
@@ -28,19 +28,20 @@ class ARNet(nn.Module):
         self.eps = 1e-6
         
     def forward(self, x, mask=None):
-        coors = x.clone()
+        coors = x
         for net in self.net:
             coors = net(coors, mask=mask)
         
         degree = torch.sum(mask, dim=1, keepdim=True)
 
         coors = coors * mask.unsqueeze(2)
-        x = x * mask.unsqueeze(2)
+        # x = x * mask.unsqueeze(2)
 
-        x = torch.sum(x, dim=1) / (degree + self.eps)
+        # x = torch.sum(x, dim=1) / (degree + self.eps)
         coors = torch.sum(coors, dim=1) / (degree + self.eps)
         
-        coors = self.mlp(torch.cat((x, coors), dim=-1)).view(x.shape[0], self.idx[1] - self.idx[0], 6)
+        # coors = self.mlp(torch.cat((x, coors), dim=-1)).view(x.shape[0], self.idx[1] - self.idx[0], 6)
+        coors = self.mlp(coors).view(x.shape[0], self.idx[1] - self.idx[0], 6)
         coors = nn.functional.pad(coors, (0, 0, self.idx[0], 29 - self.idx[1], 0, 0), 'constant', 0)
         
         return coors
