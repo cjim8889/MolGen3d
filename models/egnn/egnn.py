@@ -83,6 +83,7 @@ class CoorsNorm(nn.Module):
 class ModifiedPosEGNN(nn.Module):
     def __init__(
         self,
+        out_dim = 6,
         edge_dim = 0,
         m_dim = 16,
         fourier_features = 0,
@@ -104,7 +105,7 @@ class ModifiedPosEGNN(nn.Module):
 
         self.fourier_features = fourier_features
 
-        edge_input_dim = 6 + (fourier_features * 2) + edge_dim + 1
+        edge_input_dim = (fourier_features * 2) + edge_dim + 1
 
         if activation == "LipSwish":
             self.activation = LipSwish_
@@ -131,10 +132,17 @@ class ModifiedPosEGNN(nn.Module):
         self.m_pool_method = m_pool_method
 
         self.coors_mlp = nn.Sequential(
-            nn.Linear(m_dim, m_dim * 2),
+            nn.Linear(m_dim, m_dim),
             dropout,
             self.activation(),
-            nn.Linear(m_dim * 2, 3),
+            nn.Linear(m_dim, 3),
+        )
+
+        self.mlp = nn.Sequential(
+            nn.Linear(9, m_dim),
+            dropout,
+            self.activation(),
+            nn.Linear(m_dim, out_dim),
         )
 
         self.num_nearest_neighbors = num_nearest_neighbors
@@ -171,9 +179,9 @@ class ModifiedPosEGNN(nn.Module):
             rel_dist = fourier_encode_dist(rel_dist, num_encodings = fourier_features)
             rel_dist = rearrange(rel_dist, 'b i j () d -> b i j d')
 
-        edge_input = torch.cat((feats_i, feats_j, rel_dist), dim = -1)
+        # edge_input = torch.cat((feats_i, feats_j, rel_dist), dim = -1)
 
-        # edge_input = rel_dist
+        edge_input = rel_dist
 
         if exists(edges):
             edge_input = torch.cat((edge_input, edges), dim = -1)
@@ -191,8 +199,8 @@ class ModifiedPosEGNN(nn.Module):
             mask = rearrange(mask, '... -> ... ()')
 
         if exists(self.coors_mlp):
-            coor_weights = self.coors_mlp(m_ij)
-            rel_coors = self.coors_norm(rel_coors)
+            coor_weights = self.coors_mlp(m_ij) # B X I X J X 3
+            # rel_coors = self.coors_norm(rel_coors)
 
             if exists(mask):
                 coor_weights.masked_fill_(~mask, 0.)
@@ -201,7 +209,10 @@ class ModifiedPosEGNN(nn.Module):
                 clamp_value = self.coor_weights_clamp_value
                 coor_weights.clamp_(min = -clamp_value, max = clamp_value)
 
-            coors_out = einsum('b i j c, b i j c -> b i c', coor_weights, rel_coors)
+            temp_ij = torch.cat((feats_i, feats_j, coor_weights), dim = -1)
+            temp_i = temp_ij.sum(dim = -2)
+            
+            coors_out = self.mlp(temp_i)
         else:
             coors_out = coors
 

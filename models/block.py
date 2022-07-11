@@ -14,13 +14,13 @@ class ARNet(nn.Module):
 
         self.idx = idx
 
-        self.net = nn.ModuleList([ModifiedPosEGNN(m_dim=hidden_dim, activation=activation, fourier_features=2, soft_edges=True, norm_coors=True) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([ModifiedPosEGNN(out_dim=6, m_dim=hidden_dim, activation=activation, fourier_features=0, soft_edges=False, norm_coors=False) for _ in range(gnn_size)])
 
         self.mlp = nn.Sequential(
-            nn.Linear(3, hidden_dim),
+            nn.Linear(6, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
+            # nn.Linear(hidden_dim, hidden_dim),
+            # nn.ReLU(),
             nn.Linear(hidden_dim, (self.idx[1] - self.idx[0]) * 6),
             nn.Sigmoid()
         )
@@ -32,13 +32,11 @@ class ARNet(nn.Module):
         for net in self.net:
             coors = net(coors, mask=mask)
         
-        degree = torch.sum(mask, dim=1, keepdim=True)
-
         coors = coors * mask.unsqueeze(2)
         # x = x * mask.unsqueeze(2)
 
         # x = torch.sum(x, dim=1) / (degree + self.eps)
-        coors = torch.sum(coors, dim=1) / (degree + self.eps)
+        coors = torch.sum(coors, dim=1)
         
         # coors = self.mlp(torch.cat((x, coors), dim=-1)).view(x.shape[0], self.idx[1] - self.idx[0], 6)
         coors = self.mlp(coors).view(x.shape[0], self.idx[1] - self.idx[0], 6)
@@ -58,18 +56,19 @@ class CouplingBlockFlow(Bijection):
     ar_net_init=ar_net_init(hidden_dim=64, gnn_size=1),
     mask_init=create_mask_equivariant,
     max_nodes=29,
-    act_norm=True):
+    act_norm=True,
+    partition_size=2):
         
         super(CouplingBlockFlow, self).__init__()
         self.transforms = nn.ModuleList()
 
-        for idx in range(0, max_nodes, 2):
+        for idx in range(0, max_nodes, partition_size):
             if act_norm:
                 norm = ActNorm(last_dimension)
                 self.transforms.append(norm)
             
-            ar_net = ar_net_init((idx, min(idx + 2, max_nodes)))
-            mask = mask_init([i for i in range(idx, min(idx + 2, max_nodes))], max_nodes)
+            ar_net = ar_net_init((idx, min(idx + partition_size, max_nodes)))
+            mask = mask_init([i for i in range(idx, min(idx + partition_size, max_nodes))], max_nodes)
             tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
             self.transforms.append(tr)
     

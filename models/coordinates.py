@@ -15,7 +15,42 @@ class CoorFlow(nn.Module):
 
         super().__init__()
 
-        self.transforms = nn.ModuleList([CouplingBlockFlow(last_dimension=3, act_norm=act_norm, max_nodes=max_nodes, ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size, activation=activation)) for _ in range(block_size)])
+        self.transforms = nn.ModuleList([])
+
+
+        for idx in range(block_size):
+            tr = CouplingBlockFlow(
+                last_dimension=3,
+                act_norm=act_norm, 
+                max_nodes=max_nodes,
+                ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size, activation=activation),
+                partition_size=4
+            )
+            
+            self.transforms.append(tr)
+
+        for idx in range(2):
+            tr = CouplingBlockFlow(
+                last_dimension=3,
+                act_norm=act_norm, 
+                max_nodes=max_nodes,
+                ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size, activation=activation),
+                partition_size=2
+            )
+
+            self.transforms.append(tr)
+
+        for idx in range(1):
+            tr = CouplingBlockFlow(
+                last_dimension=3,
+                act_norm=act_norm, 
+                max_nodes=max_nodes,
+                ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size, activation=activation),
+                partition_size=1
+            )
+
+            self.transforms.append(tr)
+
 
     def forward(self, x, context=None, mask=None, logs=None):
         log_prob = torch.zeros(x.shape[0], device=x.device)
