@@ -168,15 +168,32 @@ class ModifiedPosEGNN(nn.Module):
         # if exists(mask):
             # num_nodes = mask.sum(dim = -1)
 
+
+        use_nearest = num_nearest > 0
+
         rel_coors = rearrange(coors, 'b i d -> b i () d') - rearrange(coors, 'b j d -> b () j d')
         rel_dist = (rel_coors ** 2).sum(dim = -1, keepdim = True)
 
-        # i = j = n
+        i = j = n
+        if use_nearest:
+            ranking = rel_dist[..., 0].clone()
 
-        # feats_j = rearrange(coors, 'b j d -> b () j d')
-        # feats_i = rearrange(coors, 'b i d -> b i () d')
+            if exists(mask):
+                rank_mask = mask[:, :, None] * mask[:, None, :]
+                ranking.masked_fill_(~rank_mask, 1e5)
 
-        # feats_i, feats_j = broadcast_tensors(feats_i, feats_j)
+
+            nbhd_ranking, nbhd_indices = ranking.topk(num_nearest, dim = -1, largest = False)
+
+            nbhd_mask = nbhd_ranking <= valid_radius
+
+            rel_coors = batched_index_select(rel_coors, nbhd_indices, dim = 2)
+            rel_dist = batched_index_select(rel_dist, nbhd_indices, dim = 2)
+
+            if exists(edges):
+                edges = batched_index_select(edges, nbhd_indices, dim = 2)
+
+            j = num_nearest
 
         if fourier_features > 0:
             rel_dist = fourier_encode_dist(rel_dist, num_encodings = fourier_features)
@@ -196,8 +213,13 @@ class ModifiedPosEGNN(nn.Module):
 
         if exists(mask):
             mask_i = rearrange(mask, 'b i -> b i ()')
-            mask_j = rearrange(mask, 'b j -> b () j')
-            mask = mask_i * mask_j
+
+            if use_nearest:
+                mask_j = batched_index_select(mask, nbhd_indices, dim = 1)
+                mask = (mask_i * mask_j) & nbhd_mask
+            else:
+                mask_j = rearrange(mask, 'b j -> b () j')
+                mask = mask_i * mask_j
 
             mask = rearrange(mask, '... -> ... ()')
 
@@ -212,7 +234,6 @@ class ModifiedPosEGNN(nn.Module):
                 coor_weights.clamp_(min = -clamp_value, max = clamp_value)
 
             feats_invariant = einsum('b i j c, b i j c -> b i c', coor_weights, rel_coors)
-
 
             feats_invariant = torch.cat((coors, feats_invariant), dim = -1)
             feats_invariant = self.coors_norm(feats_invariant)
