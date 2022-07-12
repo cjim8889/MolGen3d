@@ -83,6 +83,7 @@ class CoorsNorm(nn.Module):
 class ModifiedPosEGNN(nn.Module):
     def __init__(
         self,
+        in_dim = 3,
         out_dim = 6,
         edge_dim = 0,
         m_dim = 16,
@@ -135,11 +136,11 @@ class ModifiedPosEGNN(nn.Module):
             nn.Linear(m_dim, m_dim),
             dropout,
             self.activation(),
-            nn.Linear(m_dim, 3),
+            nn.Linear(m_dim, in_dim),
         )
 
         self.mlp = nn.Sequential(
-            nn.Linear(9, m_dim),
+            nn.Linear(3 * in_dim, m_dim),
             dropout,
             self.activation(),
             nn.Linear(m_dim, out_dim),

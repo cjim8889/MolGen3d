@@ -14,7 +14,10 @@ class ARNet(nn.Module):
 
         self.idx = idx
 
-        self.net = nn.ModuleList([ModifiedPosEGNN(out_dim=6, m_dim=hidden_dim, activation=activation, fourier_features=0, soft_edges=False, norm_coors=False) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([ModifiedPosEGNN(in_dim=3, out_dim=6, m_dim=hidden_dim, activation=activation, fourier_features=0, soft_edges=False, norm_coors=False)])
+
+        for idx in range(1, gnn_size):
+            self.net.append(ModifiedPosEGNN(in_dim=6, out_dim=6, m_dim=hidden_dim, activation=activation, fourier_features=0, soft_edges=False, norm_coors=False))
 
         self.mlp = nn.Sequential(
             nn.Linear(6, hidden_dim),
