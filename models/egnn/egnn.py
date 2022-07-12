@@ -128,19 +128,20 @@ class ModifiedPosEGNN(nn.Module):
             nn.Sigmoid()
         ) if soft_edges else None
 
-        self.coors_norm = CoorsNorm(scale_init = norm_coors_scale_init) if norm_coors else nn.Identity()
-
+        # self.coors_norm = CoorsNorm(scale_init = norm_coors_scale_init) if norm_coors else nn.Identity()
+        self.coors_norm = nn.LayerNorm(in_dim * 2) if norm_coors else nn.Identity()
+        
         self.m_pool_method = m_pool_method
 
         self.coors_mlp = nn.Sequential(
-            nn.Linear(m_dim, m_dim),
+            nn.Linear(m_dim, m_dim * 2),
             dropout,
             self.activation(),
-            nn.Linear(m_dim, in_dim),
+            nn.Linear(m_dim * 2, in_dim),
         )
 
         self.mlp = nn.Sequential(
-            nn.Linear(3 * in_dim, m_dim),
+            nn.Linear(in_dim * 2, m_dim),
             dropout,
             self.activation(),
             nn.Linear(m_dim, out_dim),
@@ -158,7 +159,8 @@ class ModifiedPosEGNN(nn.Module):
     def init_(self, module):
         if type(module) in {nn.Linear}:
             # seems to be needed to keep the network from exploding to NaN with greater depths
-            nn.init.normal_(module.weight, std = self.init_eps)
+            # nn.init.normal_(module.weight, std = self.init_eps)
+            nn.init.uniform_(module.weight, a = 0, b = 0.001)
 
     def forward(self, coors, edges = None, mask = None):
         b, n, d, device, fourier_features, num_nearest, valid_radius, only_sparse_neighbors = *coors.shape, coors.device, self.fourier_features, self.num_nearest_neighbors, self.valid_radius, self.only_sparse_neighbors
@@ -171,10 +173,10 @@ class ModifiedPosEGNN(nn.Module):
 
         # i = j = n
 
-        feats_j = rearrange(coors, 'b j d -> b () j d')
-        feats_i = rearrange(coors, 'b i d -> b i () d')
+        # feats_j = rearrange(coors, 'b j d -> b () j d')
+        # feats_i = rearrange(coors, 'b i d -> b i () d')
 
-        feats_i, feats_j = broadcast_tensors(feats_i, feats_j)
+        # feats_i, feats_j = broadcast_tensors(feats_i, feats_j)
 
         if fourier_features > 0:
             rel_dist = fourier_encode_dist(rel_dist, num_encodings = fourier_features)
@@ -201,7 +203,6 @@ class ModifiedPosEGNN(nn.Module):
 
         if exists(self.coors_mlp):
             coor_weights = self.coors_mlp(m_ij) # B X I X J X 3
-            # rel_coors = self.coors_norm(rel_coors)
 
             if exists(mask):
                 coor_weights.masked_fill_(~mask, 0.)
@@ -210,10 +211,13 @@ class ModifiedPosEGNN(nn.Module):
                 clamp_value = self.coor_weights_clamp_value
                 coor_weights.clamp_(min = -clamp_value, max = clamp_value)
 
-            temp_ij = torch.cat((feats_i, feats_j, coor_weights), dim = -1)
-            temp_i = temp_ij.sum(dim = -2)
-            
-            coors_out = self.mlp(temp_i)
+            feats_invariant = einsum('b i j c, b i j c -> b i c', coor_weights, rel_coors)
+
+
+            feats_invariant = torch.cat((coors, feats_invariant), dim = -1)
+            feats_invariant = self.coors_norm(feats_invariant)
+
+            coors_out = self.mlp(feats_invariant)
         else:
             coors_out = coors
 
