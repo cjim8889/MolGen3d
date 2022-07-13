@@ -13,19 +13,21 @@ class ARNet(nn.Module):
 
         self.idx = idx
 
-        self.net = nn.ModuleList([EGNN(dim=6, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=2., num_nearest_neighbors=6, update_coors=False) for _ in range(gnn_size)])
+        self.net = nn.ModuleList([EGNN(
+            dim=6, 
+            m_dim=hidden_dim, 
+            soft_edges=True, 
+            coor_weights_clamp_value=2., 
+            num_nearest_neighbors=6, 
+            update_coors=False) for _ in range(gnn_size)
+        ])
 
         self.mlp = nn.Sequential(
             nn.LazyLinear(hidden_dim),
             nn.ReLU(),
             nn.LazyLinear((self.idx[1] - self.idx[0]) * 6),
         )
-        # self.mlp = nn.Sequential(
-        #     nn.LazyLinear(hidden_dim),
-        #     nn.ReLU(),
-        #     nn.LazyLinear(6)
-        # )
-        
+
     def forward(self, x, mask=None):
         feats = x.repeat(1, 1, 2)
         coors = x
@@ -49,25 +51,18 @@ class CouplingBlockFlow(Bijection):
     last_dimension=3,
     ar_net_init=ar_net_init(hidden_dim=64, gnn_size=1),
     mask_init=create_mask_equivariant,
-    max_nodes=29):
+    max_nodes=29,
+    partition_size=2):
         
         super(CouplingBlockFlow, self).__init__()
         self.transforms = nn.ModuleList()
 
-        for idx in range(0, max_nodes, 2):
-            ar_net = ar_net_init((idx, min(idx + 2, max_nodes)))
-            mask = mask_init([i for i in range(idx, min(idx + 2, max_nodes))], max_nodes)
+        for idx in range(0, max_nodes, partition_size):
+            ar_net = ar_net_init((idx, min(idx + partition_size, max_nodes)))
+            mask = mask_init([i for i in range(idx, min(idx + partition_size, max_nodes))], max_nodes)
             tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
             self.transforms.append(tr)
 
-        # for idx in range(max_nodes):
-        #     ar_net = ar_net_init()
-        #     mask = mask_init(idx, max_nodes)
-
-        #     tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
-        #     self.transforms.append(tr)
-        
-    
     def forward(self, x, context=None, mask=None, logs=None):
         log_prob = torch.zeros(x.shape[0], device=x.device)
 
