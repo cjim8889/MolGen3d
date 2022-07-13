@@ -24,12 +24,11 @@ class CoorFlow(nn.Module):
                 act_norm=act_norm, 
                 max_nodes=max_nodes,
                 ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size, activation=activation),
-                partition_size=4
+                partition_size=3
             )
             
             self.transforms.append(tr)
 
-        for idx in range(2):
             tr = CouplingBlockFlow(
                 last_dimension=3,
                 act_norm=act_norm, 

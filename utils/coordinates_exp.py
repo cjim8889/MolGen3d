@@ -81,7 +81,7 @@ class CoorExp:
                     input = batch_data.pos.to(device)
                     mask = batch_data.mask.to(device)
 
-                    self.optimiser.zero_grad(set_to_none=True)
+                    self.optimiser.zero_grad()
                     
                     with autocast(enabled=False):
                         z, log_det = self.network(input, mask=mask)
@@ -120,7 +120,7 @@ class CoorExp:
                     
                     loss.backward()
 
-                    nn.utils.clip_grad_norm_(self.network.parameters(), 1)
+                    # nn.utils.clip_grad_norm_(self.network.parameters(), 1)
                     self.optimiser.step()
                     # scaler.step(self.optimiser)
                     # scaler.update()
@@ -128,7 +128,6 @@ class CoorExp:
                     step += 1
                     if idx % 10 == 0:
                         ll = (loss_step / 10.).item()
-                        print(ll)
                         wandb.log({"epoch": epoch, "NLL": ll}, step=step)
 
                         loss_step = 0

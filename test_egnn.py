@@ -38,8 +38,8 @@ if __name__ == "__main__":
 
     # net = ModifiedPosEGNN(in_dim=3, out_dim=6, norm_coors=True, num_nearest_neighbors=6 ,fourier_features=2, soft_edges=True, dropout=0.1)
     # net = ARNet(hidden_dim=64, gnn_size=1, idx=(0, 2), activation='LipSwish')
-    # net = CoorFlow(hidden_dim=16, gnn_size=2, block_size=2, activation='LipSwish', act_norm=False)
-    net = CouplingBlockFlow(act_norm=False, partition_size=4)
+    net = CoorFlow(hidden_dim=16, gnn_size=2, block_size=2, activation='LipSwish', act_norm=False)
+    # net = CouplingBlockFlow(act_norm=False, partition_size=4)
     print(net)
     print(feats)
     feats, _ = net(feats, mask=mask)
