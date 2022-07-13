@@ -18,7 +18,7 @@ def create_model(config):
 
     optimiser = None
     if config['optimiser'] == "Adam":
-        optimiser = torch.optim.Adam(model.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"])
+        optimiser = torch.optim.Adam(model.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"], amsgrad=True)
     elif config["optimiser"] == "AdamW":
         optimiser = torch.optim.AdamW(model.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"])
     elif config["optimiser"] == "SGD":
