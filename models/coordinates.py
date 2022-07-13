@@ -39,7 +39,7 @@ class CoorFlow(nn.Module):
 
             self.transforms.append(tr)
 
-        for idx in range(1):
+        for idx in range(2):
             tr = CouplingBlockFlow(
                 last_dimension=3,
                 act_norm=act_norm, 

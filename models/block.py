@@ -15,21 +15,34 @@ class ARNet(nn.Module):
         self.idx = idx
 
         self.net = nn.ModuleList([
-            EGNN(dim=6, 
-            m_dim=hidden_dim, 
-            num_nearest_neighbors=9, 
-            norm_feats=True, 
-            update_coors=False,
-            fourier_features=1,
-            soft_edges=True) for _ in range(gnn_size)
+            ModifiedPosEGNN(
+                in_dim=3,
+                out_dim=hidden_dim,
+                m_dim=hidden_dim,
+                num_nearest_neighbors=6,
+                soft_edges=True,
+                activation=activation,
+            )
         ])
+
+        for _ in range(gnn_size - 1):
+            self.net.append(
+                ModifiedPosEGNN(
+                    in_dim=hidden_dim,
+                    out_dim=hidden_dim,
+                    m_dim=hidden_dim,
+                    num_nearest_neighbors=6,
+                    soft_edges=True,
+                    activation=activation,
+                )
+            )
         # self.net = nn.ModuleList([ModifiedPosEGNN(in_dim=3, out_dim=6, m_dim=hidden_dim, activation=activation, fourier_features=0, num_nearest_neighbors=6, soft_edges=True, norm_coors=True)])
 
         # for idx in range(1, gnn_size):
             # self.net.append(ModifiedPosEGNN(in_dim=6, out_dim=hidden_dim, m_dim=hidden_dim, activation=activation, fourier_features=0, num_nearest_neighbors=6, soft_edges=True, norm_coors=True))
 
         self.mlp = nn.Sequential(
-            nn.Linear(6, hidden_dim),
+            nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
@@ -39,20 +52,19 @@ class ARNet(nn.Module):
         self.eps = 1e-6
         
     def forward(self, x, mask=None):
-        feats = x.repeat(1, 1, 2)
+        # feats = x.repeat(1, 1, 2)
         coors = x
 
         for net in self.net:
-            feats, coors = net(feats, coors, mask=mask)
+            coors = net(coors, mask=mask)
 
             coors = coors * mask.unsqueeze(2)
-            feats = feats * mask.unsqueeze(2)
         
-        feats = torch.sum(feats, dim=1) / (torch.sum(mask, dim=1, keepdim=True) + self.eps)
-        feats = self.mlp(feats).view(x.shape[0], self.idx[1] - self.idx[0], 6)
-        feats = nn.functional.pad(feats, (0, 0, self.idx[0], 29 - self.idx[1], 0, 0), 'constant', 0)
+        coors = torch.sum(coors, dim=1) / (torch.sum(mask, dim=1, keepdim=True) + self.eps)
+        coors = self.mlp(coors).view(x.shape[0], self.idx[1] - self.idx[0], 6)
+        coors = nn.functional.pad(coors, (0, 0, self.idx[0], 29 - self.idx[1], 0, 0), 'constant', 0)
         
-        return feats
+        return coors
 
 def ar_net_init(hidden_dim=128, gnn_size=2, activation='LipSwish'):
     def _init(idx):
