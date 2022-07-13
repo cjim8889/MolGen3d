@@ -106,7 +106,7 @@ class ModifiedPosEGNN(nn.Module):
 
         self.fourier_features = fourier_features
 
-        edge_input_dim = (fourier_features * 2) + edge_dim + 1
+        edge_input_dim = 2 * in_dim + (fourier_features * 2) + edge_dim + 1
 
         if activation == "LipSwish":
             self.activation = LipSwish_
@@ -129,7 +129,7 @@ class ModifiedPosEGNN(nn.Module):
         ) if soft_edges else None
 
         # self.coors_norm = CoorsNorm(scale_init = norm_coors_scale_init) if norm_coors else nn.Identity()
-        self.coors_norm = nn.LayerNorm(in_dim * 2) if norm_coors else nn.Identity()
+        self.coors_norm = nn.LayerNorm(in_dim * 2 + m_dim) if norm_coors else nn.Identity()
         
         self.m_pool_method = m_pool_method
 
@@ -141,7 +141,7 @@ class ModifiedPosEGNN(nn.Module):
         )
 
         self.mlp = nn.Sequential(
-            nn.Linear(in_dim * 2, m_dim),
+            nn.Linear(in_dim * 2 + m_dim, m_dim),
             dropout,
             self.activation(),
             nn.Linear(m_dim, out_dim),
@@ -199,14 +199,22 @@ class ModifiedPosEGNN(nn.Module):
             rel_dist = fourier_encode_dist(rel_dist, num_encodings = fourier_features)
             rel_dist = rearrange(rel_dist, 'b i j () d -> b i j d')
 
-        # edge_input = torch.cat((feats_i, feats_j, rel_dist), dim = -1)
+        if use_nearest:
+            feats_j = batched_index_select(coors, nbhd_indices, dim = 1)
+        else:
+            feats_j = rearrange(coors, 'b j d -> b () j d')
 
-        edge_input = rel_dist
+        feats_i = rearrange(coors, 'b i d -> b i () d')
+        feats_i, feats_j = broadcast_tensors(feats_i, feats_j)
+
+        edge_input = torch.cat((feats_i, feats_j, rel_dist), dim = -1)
+
+        # edge_input = rel_dist
 
         if exists(edges):
             edge_input = torch.cat((edge_input, edges), dim = -1)
 
-        m_ij = self.edge_mlp(edge_input)
+        m_ij = self.edge_mlp(edge_input) # B X I X J X m_dim
 
         if exists(self.edge_gate):
             m_ij = m_ij * self.edge_gate(m_ij)
@@ -224,18 +232,12 @@ class ModifiedPosEGNN(nn.Module):
             mask = rearrange(mask, '... -> ... ()')
 
         if exists(self.coors_mlp):
-            coor_weights = self.coors_mlp(m_ij) # B X I X J X 3
 
             if exists(mask):
-                coor_weights.masked_fill_(~mask, 0.)
+                m_ij.masked_fill_(~mask, 0.)
 
-            if exists(self.coor_weights_clamp_value):
-                clamp_value = self.coor_weights_clamp_value
-                coor_weights.clamp_(min = -clamp_value, max = clamp_value)
 
-            feats_invariant = einsum('b i j c, b i j c -> b i c', coor_weights, rel_coors)
-
-            feats_invariant = torch.cat((coors, feats_invariant), dim = -1)
+            feats_invariant = torch.cat((coors, m_ij.sum(dim = -2), rel_coors.sum(dim = -2)), dim = -1)
             feats_invariant = self.coors_norm(feats_invariant)
 
             coors_out = self.mlp(feats_invariant)

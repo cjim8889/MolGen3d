@@ -17,20 +17,14 @@ class ARNet(nn.Module):
         self.net = nn.ModuleList([ModifiedPosEGNN(in_dim=3, out_dim=6, m_dim=hidden_dim, activation=activation, fourier_features=0, num_nearest_neighbors=6, soft_edges=True, norm_coors=True)])
 
         for idx in range(1, gnn_size):
-            self.net.append(ModifiedPosEGNN(in_dim=6, out_dim=6, m_dim=hidden_dim, activation=activation, fourier_features=0, num_nearest_neighbors=6, soft_edges=True, norm_coors=True))
-
-        self.mlp_elementwise = nn.Sequential(
-            nn.Linear(6, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-        )
+            self.net.append(ModifiedPosEGNN(in_dim=6, out_dim=hidden_dim, m_dim=hidden_dim, activation=activation, fourier_features=0, num_nearest_neighbors=6, soft_edges=True, norm_coors=True))
 
         self.mlp = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
             nn.Linear(hidden_dim, (self.idx[1] - self.idx[0]) * 6),
-            # nn.Sigmoid()
         )
 
         self.eps = 1e-6
@@ -41,9 +35,6 @@ class ARNet(nn.Module):
             coors = net(coors, mask=mask)
             coors = coors * mask.unsqueeze(2)
         
-
-        coors = self.mlp_elementwise(coors)
-
         coors = torch.sum(coors, dim=1) / (torch.sum(mask, dim=1, keepdim=True) + self.eps)
         coors = self.mlp(coors).view(x.shape[0], self.idx[1] - self.idx[0], 6)
         coors = nn.functional.pad(coors, (0, 0, self.idx[0], 29 - self.idx[1], 0, 0), 'constant', 0)
