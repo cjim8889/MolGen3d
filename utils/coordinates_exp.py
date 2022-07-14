@@ -108,12 +108,12 @@ class CoorExp:
                             self.total_logged += 1
 
 
-                    loss_step += loss
-                    loss_ep_train += loss
+                    loss_step += loss.detach()
+                    loss_ep_train += loss.detach()
 
                     scaler.scale(loss).backward()
-                    # scaler.unscale_(self.optimiser)
-                    # nn.utils.clip_grad_norm_(self.network.parameters(), 1)
+                    scaler.unscale_(self.optimiser)
+                    nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=1)
                     
                     # loss.backward()
 
@@ -133,7 +133,7 @@ class CoorExp:
                     self.scheduler.step()
                     wandb.log({"Learning Rate/Epoch": self.scheduler.get_last_lr()[0]})
 
-                gc.collect()
+                # gc.collect()
                 wandb.log({"NLL/Epoch": (loss_ep_train / len(self.train_loader)).item()}, step=epoch)
                 if self.config['upload']:
                     if epoch % self.config['upload_interval'] == 0:
