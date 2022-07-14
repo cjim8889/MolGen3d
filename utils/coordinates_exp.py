@@ -84,14 +84,15 @@ class CoorExp:
 
                         log_prob = None
 
-                        if self.config['base'] == "invariant":
-                            z = z * mask.unsqueeze(2)
-                            zero_mean_z = remove_mean_with_mask(z, node_mask=mask)
-                            log_prob = sum_except_batch(center_gravity_zero_gaussian_log_likelihood_with_mask(zero_mean_z, node_mask=mask))
-                        else:
-                            log_prob = sum_except_batch(self.base.log_prob(z))
 
-                        loss = argmax_criterion(log_prob, log_det)
+                    if self.config['base'] == "invariant":
+                        z = z * mask.unsqueeze(2)
+                        zero_mean_z = remove_mean_with_mask(z, node_mask=mask)
+                        log_prob = sum_except_batch(center_gravity_zero_gaussian_log_likelihood_with_mask(zero_mean_z, node_mask=mask))
+                    else:
+                        log_prob = sum_except_batch(self.base.log_prob(z))
+
+                    loss = argmax_criterion(log_prob, log_det)
 
                     if (loss > 1e3 and epoch > 5) or torch.isnan(loss):
                         if self.total_logged < 30:
