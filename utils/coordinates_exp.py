@@ -64,7 +64,7 @@ class CoorExp:
         self.network(torch.zeros(1, 29, 3, device=device), mask=torch.ones(1, 29, device=device, dtype=torch.bool))
         print(f"Model Parameters: {sum([p.numel() for p in self.network.parameters()])}")
 
-        # scaler = GradScaler()
+        scaler = GradScaler()
         with wandb.init(project="molecule-flow-3d", config=self.config, entity="iclac") as run:
             step = 0
             for epoch in range(self.config['epochs']):
@@ -79,7 +79,7 @@ class CoorExp:
 
                     self.optimiser.zero_grad(set_to_none=True)
                     
-                    with autocast(enabled=False):
+                    with autocast(enabled=True):
                         z, log_det = self.network(input, mask=mask)
 
                         log_prob = None
@@ -110,16 +110,16 @@ class CoorExp:
                     loss_step += loss
                     loss_ep_train += loss
 
-                    # scaler.scale(loss).backward()
+                    scaler.scale(loss).backward()
                     # scaler.unscale_(self.optimiser)
                     # nn.utils.clip_grad_norm_(self.network.parameters(), 1)
                     
-                    loss.backward()
+                    # loss.backward()
 
-                    nn.utils.clip_grad_norm_(self.network.parameters(), 1)
-                    self.optimiser.step()
-                    # scaler.step(self.optimiser)
-                    # scaler.update()
+                    # nn.utils.clip_grad_norm_(self.network.parameters(), 1)
+                    # self.optimiser.step()
+                    scaler.step(self.optimiser)
+                    scaler.update()
 
                     step += 1
                     if idx % 10 == 0:
