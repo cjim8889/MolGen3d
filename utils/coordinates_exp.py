@@ -8,6 +8,7 @@ import torch
 import numpy as np
 from torch import nn
 from torch.cuda.amp import GradScaler, autocast
+import gc
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # @torch.jit.script
@@ -131,6 +132,7 @@ class CoorExp:
                     self.scheduler.step()
                     wandb.log({"Learning Rate/Epoch": self.scheduler.get_last_lr()[0]})
 
+                gc.collect()
                 wandb.log({"NLL/Epoch": (loss_ep_train / len(self.train_loader)).item()}, step=epoch)
                 if self.config['upload']:
                     if epoch % self.config['upload_interval'] == 0:
