@@ -8,17 +8,20 @@ from torch import nn
 from egnn_pytorch import EGNN
 
 class ARNet(nn.Module):
-    def __init__(self, hidden_dim=32, gnn_size=1, num_classes=6):
+    def __init__(self, hidden_dim=32, gnn_size=1, num_classes=6, idx=(0, 2)):
         super().__init__()
 
-        self.net = nn.ModuleList([EGNN(dim=num_classes*2, m_dim=hidden_dim, norm_coors=True, soft_edges=True, coor_weights_clamp_value=1., update_coors=False, num_nearest_neighbors=6) for _ in range(gnn_size)])
+        self.idx = idx
+        self.net = nn.ModuleList([EGNN(dim=num_classes*2, m_dim=hidden_dim, soft_edges=True, update_coors=False, num_nearest_neighbors=6) for _ in range(gnn_size)])
 
         self.mlp = nn.Sequential(
             nn.LazyLinear(hidden_dim),
             nn.ReLU(),
-            nn.LazyLinear(num_classes * 2)
+            nn.LazyLinear((self.idx[1] - self.idx[0]) * num_classes * 2)
         )
         
+        self.num_classes = num_classes
+
     def forward(self, x, context=None, mask=None):
         feats = x.repeat(1, 1, 2)
         mask = mask.expand(x.shape[0], mask.shape[1])
@@ -28,29 +31,32 @@ class ARNet(nn.Module):
             feats, coors = net(feats, coors, mask=mask)
         
         feats = torch.sum(feats * mask.unsqueeze(2), dim=1) / torch.sum(mask, dim=1, keepdim=True)
-        feats = self.mlp(feats).unsqueeze(1)
+        feats = self.mlp(feats).view(x.shape[0], self.idx[1] - self.idx[0], self.num_classes * 2)
+        feats = nn.functional.pad(feats, (0, 0, self.idx[0], 29 - self.idx[1], 0, 0), 'constant', 0)
+        
 
-        return feats.repeat(1, x.shape[1], 1)
+        return feats
 
 def ar_net_init(hidden_dim=128, gnn_size=1):
-    def _init():
-        return ARNet(hidden_dim=hidden_dim, gnn_size=gnn_size)
+    def _init(idx):
+        return ARNet(hidden_dim=hidden_dim, gnn_size=gnn_size, idx=idx)
 
     return _init
 
 class ConditionalCouplingBlockFlow(ConditionalBijection):
     def __init__(self,
-    max_nodes=9,
+    max_nodes=29,
     num_classes=6,
     ar_net_init=ar_net_init(hidden_dim=64, gnn_size=1),
-    mask_init=create_mask_equivariant):
+    mask_init=create_mask_equivariant,
+    partition_size=2):
         
         super(ConditionalCouplingBlockFlow, self).__init__()
         self.transforms = nn.ModuleList()
 
-        for idx in range(max_nodes):
-            ar_net = ar_net_init()
-            mask = mask_init(idx, max_nodes)
+        for idx in range(0, max_nodes, partition_size):
+            ar_net = ar_net_init((idx, min(idx + partition_size, max_nodes)))
+            mask = mask_init([i for i in range(idx, min(idx + partition_size, max_nodes))], max_nodes)
 
             tr = MaskedConditionalCouplingFlow(ar_net, mask=mask, split_dim=-1)
             self.transforms.append(tr)
