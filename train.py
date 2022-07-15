@@ -1,7 +1,7 @@
 import argparse
 from utils import CoorExp, VertExp
 import torch
-from torch import nn
+from torch import autocast, nn
 
 parser = argparse.ArgumentParser(description="Molecular Generation MSc Project: 3D")
 parser.add_argument("--type", help="Type of experiments e.g. argmaxadj")
@@ -24,6 +24,7 @@ parser.add_argument("--scheduler_gamma", help="Scheduler gamma", type=float, def
 parser.add_argument("--upload", help="Upload to wandb", type=bool, default=False)
 parser.add_argument("--upload_interval", help="Upload to wandb every n epochs", type=int, default=10)
 
+parser.add_argument("--autocast", help="Autocast", type=int, default=0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def weight_init(m):
@@ -76,6 +77,7 @@ if __name__ == "__main__":
             upload_interval=args.upload_interval,
             hidden_dim=args.hidden_dim,
             block_size=args.block_size,
+            autocast=args.autocast != 0,
         )
 
         exp = VertExp(config=config)
