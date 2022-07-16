@@ -16,7 +16,7 @@ def create_model(config):
     if "weight_init" in config:
         model.apply(config["weight_init"])
 
-    optimiser = None
+
     if config['optimiser'] == "Adam":
         optimiser = torch.optim.Adam(model.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"], amsgrad=True)
     elif config["optimiser"] == "AdamW":
@@ -31,8 +31,8 @@ def create_model(config):
         scheduler = torch.optim.lr_scheduler.StepLR(optimiser, step_size=config['scheduler_step'], gamma=config["scheduler_gamma"])
 
     
-    if "load_from" in config:
-        states = torch.load(config["load_from"], map_location=device)
+    if config['loadfrom'] is not None:
+        states = torch.load(config["loadfrom"], map_location=device)
 
         model.load_state_dict(states["model_state_dict"])
         optimiser.load_state_dict(states["optimizer_state_dict"])
