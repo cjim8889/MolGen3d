@@ -28,6 +28,8 @@ parser.add_argument("--autocast", help="Autocast", type=int, default=0)
 parser.add_argument("--loadfrom", help="Load from checkpoint", type=str, default=None)
 parser.add_argument("--no_opt", help="No optimiser", type=int, default=0)
 
+parser.add_argument("--encoder_size", help="Encoder Size for Vert Net", type=int, default=2)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def weight_init(m):
@@ -85,7 +87,8 @@ if __name__ == "__main__":
             block_size=args.block_size,
             autocast=args.autocast != 0,
             loadfrom=args.loadfrom,
-            no_opt=args.no_opt == 0
+            no_opt=args.no_opt == 0,
+            encoder_size=args.encoder_size
         )
 
         exp = VertExp(config=config)
