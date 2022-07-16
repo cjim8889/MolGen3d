@@ -26,6 +26,8 @@ parser.add_argument("--upload_interval", help="Upload to wandb every n epochs", 
 
 parser.add_argument("--autocast", help="Autocast", type=int, default=0)
 parser.add_argument("--loadfrom", help="Load from checkpoint", type=str, default=None)
+parser.add_argument("--no_opt", help="No optimiser", type=int, default=0)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def weight_init(m):
@@ -60,6 +62,7 @@ if __name__ == "__main__":
             base=args.base,
             loadfrom=args.loadfrom,
             autocast=args.autocast != 0,
+            no_opt=args.no_opt == 0
         )
 
         exp = CoorExp(config=config)
@@ -81,7 +84,8 @@ if __name__ == "__main__":
             hidden_dim=args.hidden_dim,
             block_size=args.block_size,
             autocast=args.autocast != 0,
-            loadfrom=args.loadfrom
+            loadfrom=args.loadfrom,
+            no_opt=args.no_opt == 0
         )
 
         exp = VertExp(config=config)
