@@ -79,7 +79,7 @@ class CoorExp:
 
                     self.optimiser.zero_grad(set_to_none=True)
                     
-                    with autocast(enabled=True):
+                    with autocast(enabled=self.config['autocast']):
                         z, log_det = self.network(input, mask=mask)
 
                         log_prob = None
@@ -111,16 +111,17 @@ class CoorExp:
                     loss_step += loss.detach()
                     loss_ep_train += loss.detach()
 
-                    scaler.scale(loss).backward()
-                    # scaler.unscale_(self.optimiser)
-                    # nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=1)
-                    
-                    # loss.backward()
-
-                    # nn.utils.clip_grad_norm_(self.network.parameters(), 1)
-                    # self.optimiser.step()
-                    scaler.step(self.optimiser)
-                    scaler.update()
+                    if self.config['autocast']:
+                        scaler.scale(loss).backward()
+                        scaler.unscale_(self.optimiser)
+                        nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=1)
+                        scaler.step(self.optimiser)
+                        scaler.update()
+                    else:
+                        loss.backward()
+                        nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=1)
+                        self.optimiser.step()
+        
 
                     step += 1
                     if idx % 10 == 0:
