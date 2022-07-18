@@ -25,9 +25,16 @@ def remove_mean_with_mask(x, node_mask):
 # )
 
 net = CoorFlow(
-    hidden_dim=32,
-    gnn_size=2,
-    block_size=2,
+    hidden_dim=128,
+    gnn_size=3,
+    block_size=8,
+)
+
+net.load_state_dict(
+    torch.load(
+        "model_checkpoint_qof5w8ec_90.pt",
+        map_location="cpu"
+    )['model_state_dict']
 )
 
 classifier = PosClassifier(
@@ -36,29 +43,25 @@ classifier = PosClassifier(
 
 classifier.load_state_dict(torch.load("classifier.pt", map_location="cpu")['model_state_dict'])
 
-for param in classifier.parameters():
-    param.requires_grad = False
 
-batch_size = 64
-base = torch.distributions.Normal(loc=0., scale=1.)
+with torch.no_grad():
 
-z = base.sample(sample_shape=(batch_size, 29, 3))
-mask = torch.ones(batch_size, 29).to(torch.bool)
-mask_size = torch.randint(3, 29, (batch_size,))
+    batch_size = 128
+    base = torch.distributions.Normal(loc=0., scale=1.)
 
-for idx in range(batch_size):
-    mask[idx, mask_size[idx]:] = False
+    z = base.sample(sample_shape=(batch_size, 29, 3))
+    mask = torch.ones(batch_size, 29).to(torch.bool)
+    mask_size = torch.randint(3, 29, (batch_size,))
 
-z = z * mask.unsqueeze(2)
-z = remove_mean_with_mask(z, node_mask=mask)
+    for idx in range(batch_size):
+        mask[idx, mask_size[idx]:] = False
 
-out, _ = net.inverse(z, mask=mask)
+    z = z * mask.unsqueeze(2)
+    z = remove_mean_with_mask(z, node_mask=mask)
 
-pred = classifier(out, mask=mask)
+    out, _ = net.inverse(z, mask=mask)
 
-loss = -torch.sigmoid(pred).sum()
+    pred = torch.sigmoid(classifier(out, mask=mask))
 
-loss.backward()
-print(out)
-print(torch.sum(torch.sigmoid(pred) > 0.5))
-print(out.shape)
+
+    print(torch.sum(pred > 0.5))

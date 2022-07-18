@@ -106,7 +106,7 @@ class TwoStageCoorExp:
 
                     
                     # # sample = self.base.sample(sample_shape=(self.batch_size, 29, 3))
-                    sample = torch.randn(self.batch_size, 29, 3, device=device)
+                    sample = torch.randn(input.shape[0], 29, 3, device=device)
                     sample = sample * mask.unsqueeze(2)
                     sample = remove_mean_with_mask(sample, node_mask=mask)
 
@@ -114,10 +114,13 @@ class TwoStageCoorExp:
                         sample_pos, _ = self.network.inverse(sample, mask=mask)
                         pred = self.classifier(sample_pos, mask=mask)
 
-                    classifier_loss = -torch.sigmoid(pred).sum()
+                    classifier_loss = -pred.sum()
                     log_p = argmax_criterion(log_prob, log_det)
 
-                    loss = 0.1 * classifier_loss + log_p
+                    if epoch > 40:
+                        loss = classifier_loss + log_p
+                    else:
+                        loss = classifier_loss * 10 + log_p
 
                     if (loss > 1e3 and epoch > 5) or torch.isnan(loss):
                         if self.total_logged < 30:
