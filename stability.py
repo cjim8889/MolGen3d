@@ -42,11 +42,11 @@ if __name__ == "__main__":
 
     # pos = batch.pos
     # mask = batch.mask
-    batch_size = 1000
+    batch_size = 300
 
-    coor_net = CoorFlow(hidden_dim=128, gnn_size=1, block_size=8)
+    coor_net = CoorFlow(hidden_dim=128, gnn_size=3, block_size=8)
     coor_net.load_state_dict(
-        torch.load("model_checkpoint_33ujozby_480.pt", map_location="cpu")['model_state_dict']
+        torch.load("model_checkpoint_qof5w8ec_90.pt", map_location="cpu")['model_state_dict']
     )
 
     z = base.sample(sample_shape=(batch_size, 29, 3))
@@ -65,12 +65,13 @@ if __name__ == "__main__":
 
     # # print(pos[0])
     net = AtomFlow(
-        hidden_dim=64,
-        block_size=3
+        hidden_dim=128,
+        block_size=10,
+        encoder_size=5
     )
 
     net.load_state_dict(
-        torch.load("model_checkpoint_2gq9kaav_645.pt", map_location="cpu")['model_state_dict']
+        torch.load("model_checkpoint_1642pd3z_80.pt", map_location="cpu")['model_state_dict']
     )
 
     with torch.no_grad():
