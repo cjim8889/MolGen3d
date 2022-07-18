@@ -104,13 +104,14 @@ class TwoStageCoorExp:
                         log_prob = sum_except_batch(self.base.log_prob(z))
 
                     
-                    # sample = self.base.sample(sample_shape=(self.batch_size, 29, 3))
-                    sample = torch.randn(self.batch_size, 29, 3, device=device)
-                    sample = sample * mask.unsqueeze(2)
-                    sample = remove_mean_with_mask(sample, node_mask=mask)
+                    # # sample = self.base.sample(sample_shape=(self.batch_size, 29, 3))
+                    # sample = torch.randn(self.batch_size, 29, 3, device=device)
+                    # sample = sample * mask.unsqueeze(2)
+                    # sample = remove_mean_with_mask(sample, node_mask=mask)
 
-                    sample_pos, _ = self.network.inverse(sample, mask=mask)
-                    pred = self.classifier(sample_pos, mask=mask)
+                    with autocast(enabled=self.config['autocast']):
+                        sample_pos, _ = self.network.inverse(z, mask=mask)
+                        pred = self.classifier(sample_pos, mask=mask)
 
                     classifier_loss = -torch.sigmoid(pred).sum()
                     log_p = argmax_criterion(log_prob, log_det)
@@ -155,6 +156,7 @@ class TwoStageCoorExp:
                         wandb.log({"epoch": epoch, "Loss": ll, "Log_p": lp, "Classifier_Loss": cl}, step=step)
 
                         loss_step = 0
+                        log_p_step = 0
 
                 if self.scheduler is not None:
                     self.scheduler.step()
