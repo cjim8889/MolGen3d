@@ -61,9 +61,10 @@ class TwoStageCoorExp:
         self.classifier = PosClassifier(feats_dim=64, hidden_dim=256, gnn_size=5)
         self.classifier.load_state_dict(torch.load(config['classifier'], map_location=device)['model_state_dict'])
 
+        self.classifier = self.classifier.to(device)
+        
         for param in self.classifier.parameters():
             param.requires_grad = False
-
 
         # self.base = torch.distributions.Normal(loc=torch.tensor(0, device=device), scale=torch.tensor(1, device=device))
         self.total_logged = 0
@@ -151,7 +152,6 @@ class TwoStageCoorExp:
                         lp = (log_p_step / 10.).item()
 
                         cl = ll - lp
-
                         wandb.log({"epoch": epoch, "Loss": ll, "Log_p": lp, "Classifier_Loss": cl}, step=step)
 
                         loss_step = 0
