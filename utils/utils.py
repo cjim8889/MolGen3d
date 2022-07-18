@@ -6,7 +6,7 @@ def argmax_criterion(log_prob, log_det):
     return - torch.mean(log_prob + log_det)
 
 def create_model(config):
-    if config['flow'] == "CoorFlow":
+    if config['flow'] == "CoorFlow" or config['flow'] == "TwoStageCoorFlow":
         model = config['model'](hidden_dim=config['hidden_dim'], gnn_size=config['gnn_size'], block_size=config['block_size'])
         model = model.to(device)
     elif config['flow'] == "AtomFlow":

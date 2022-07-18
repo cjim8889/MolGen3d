@@ -1,5 +1,5 @@
 import argparse
-from utils import CoorExp, VertExp
+from utils import CoorExp, VertExp, TwoStageCoorExp
 import torch
 from torch import autocast, nn
 
@@ -29,6 +29,7 @@ parser.add_argument("--loadfrom", help="Load from checkpoint", type=str, default
 parser.add_argument("--no_opt", help="No optimiser", type=int, default=0)
 
 parser.add_argument("--encoder_size", help="Encoder Size for Vert Net", type=int, default=2)
+parser.add_argument("--classifier", help="Classifier", type=str, default=None)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -92,5 +93,32 @@ if __name__ == "__main__":
         )
 
         exp = VertExp(config=config)
+    
+    if args.type == "2stage":
+        config = dict(
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            optimiser=args.optimiser,
+            learning_rate=args.lr,
+            weight_decay=args.weight_decay,
+            scheduler=args.scheduler,
+            scheduler_gamma=args.scheduler_gamma,
+            scheduler_step=args.scheduler_step,
+            dataset="MQM9",
+            architecture="Flow",
+            weight_init=weight_init,
+            upload=args.upload,
+            upload_interval=args.upload_interval,
+            hidden_dim=args.hidden_dim,
+            block_size=args.block_size,
+            gnn_size=args.gnn_size,
+            base=args.base,
+            loadfrom=args.loadfrom,
+            autocast=args.autocast != 0,
+            no_opt=args.no_opt == 0,
+            classifier=args.classifier
+        )
+
+        exp = TwoStageCoorExp(config=config)
 
     exp.train()
