@@ -80,6 +80,7 @@ class TwoStageCoorExp:
                 loss_step = 0
                 loss_ep_train = 0
 
+                loss_cl_step = 0
                 log_p_step = 0
 
                 self.network.train()
@@ -105,12 +106,12 @@ class TwoStageCoorExp:
 
                     
                     # # sample = self.base.sample(sample_shape=(self.batch_size, 29, 3))
-                    # sample = torch.randn(self.batch_size, 29, 3, device=device)
-                    # sample = sample * mask.unsqueeze(2)
-                    # sample = remove_mean_with_mask(sample, node_mask=mask)
+                    sample = torch.randn(self.batch_size, 29, 3, device=device)
+                    sample = sample * mask.unsqueeze(2)
+                    sample = remove_mean_with_mask(sample, node_mask=mask)
 
                     with autocast(enabled=self.config['autocast']):
-                        sample_pos, _ = self.network.inverse(z, mask=mask)
+                        sample_pos, _ = self.network.inverse(sample, mask=mask)
                         pred = self.classifier(sample_pos, mask=mask)
 
                     classifier_loss = -torch.sigmoid(pred).sum()
@@ -134,6 +135,7 @@ class TwoStageCoorExp:
                     log_p_step += log_p.detach()
                     loss_step += loss.detach()
                     loss_ep_train += loss.detach()
+                    loss_cl_step += classifier_loss.detach()
 
                     if self.config['autocast']:
                         scaler.scale(loss).backward()
@@ -152,10 +154,12 @@ class TwoStageCoorExp:
                         ll = (loss_step / 10.).item()
                         lp = (log_p_step / 10.).item()
 
-                        cl = ll - lp
+                        cl = (loss_cl_step / 10.).item()
+
                         wandb.log({"epoch": epoch, "Loss": ll, "Log_p": lp, "Classifier_Loss": cl}, step=step)
 
                         loss_step = 0
+                        loss_cl_step = 0
                         log_p_step = 0
 
                 if self.scheduler is not None:
