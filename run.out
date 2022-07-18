@@ -19,3 +19,5 @@ Each matrix is:     0.00 meg.
 ; Number of orbitals
 #Num_Orbitals: 14
 Error value from Diagonalization (0 is good): 0
+
+python3 train.py --type 2stage --classifier classifier.pt --hidden_dim 32 --autocast 0  --block_size 2 --gnn_size 3 --lr 4e-04 --scheduler None --scheduler_step 4 --scheduler_gamma 0.99 --weight_decay 1e-06 --optimiser Adam --batch_size 32 --base invariant --epochs 1000
