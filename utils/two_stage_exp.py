@@ -62,7 +62,7 @@ class TwoStageCoorExp:
         self.classifier.load_state_dict(torch.load(config['classifier'], map_location=device)['model_state_dict'])
 
         self.classifier = self.classifier.to(device)
-        
+
         for param in self.classifier.parameters():
             param.requires_grad = False
 
@@ -109,7 +109,7 @@ class TwoStageCoorExp:
                     sample = sample * mask.unsqueeze(2)
                     sample = remove_mean_with_mask(sample, node_mask=mask)
 
-                    sample_pos, _ = self.network.inverse(z, mask=mask)
+                    sample_pos, _ = self.network.inverse(sample, mask=mask)
                     pred = self.classifier(sample_pos, mask=mask)
 
                     classifier_loss = -torch.sigmoid(pred).sum()
