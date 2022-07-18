@@ -114,7 +114,7 @@ class TwoStageCoorExp:
                         sample_pos, _ = self.network.inverse(sample, mask=mask)
                         pred = self.classifier(sample_pos, mask=mask)
 
-                    classifier_loss = -pred.sum()
+                    classifier_loss = -torch.sigmoid(pred).sum()
                     log_p = argmax_criterion(log_prob, log_det)
 
                     if epoch > 40:
