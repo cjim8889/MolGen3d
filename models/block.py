@@ -1,4 +1,4 @@
-from ast import Mod
+
 from survae.transforms.bijections import Bijection
 from .utils import create_mask_ar, create_mask_equivariant
 from .coupling import MaskedCouplingFlow
@@ -6,7 +6,7 @@ from survae.transforms.bijections import ConditionalBijection, Bijection, ActNor
 
 import torch
 from torch import nn
-# from egnn_pytorch import EGNN
+from egnn_pytorch import EGNN
 from .egnn import ModifiedPosEGNN
 
 class ARNet(nn.Module):
@@ -15,28 +15,41 @@ class ARNet(nn.Module):
 
         self.idx = idx
 
-        self.net = nn.ModuleList([ModifiedPosEGNN(
-            in_dim=3,
-            out_dim=6, 
-            m_dim=hidden_dim, 
-            fourier_features=2,
-            num_nearest_neighbors=6,
-            norm_coors=True,
-            soft_edges=True)
-        ])
+        self.net = nn.ModuleList(
+            [
+                EGNN(
+                    dim=6,
+                    m_dim=hidden_dim, 
+                    soft_edges=True, 
+                    coor_weights_clamp_value=2., 
+                    num_nearest_neighbors=6, 
+                    update_coors=False
+                ) for _ in range(gnn_size)
+            ]
+        )
 
-        for idx in range(gnn_size - 1):
-            self.net.append(
-                ModifiedPosEGNN(
-                    in_dim=6,
-                    out_dim=6,
-                    m_dim=hidden_dim,
-                    fourier_features=2,
-                    num_nearest_neighbors=6,
-                    norm_coors=True,
-                    soft_edges=True
-                )
-            )
+        # self.net = nn.ModuleList([ModifiedPosEGNN(
+        #     in_dim=3,
+        #     out_dim=6, 
+        #     m_dim=hidden_dim, 
+        #     fourier_features=2,
+        #     num_nearest_neighbors=6,
+        #     norm_coors=True,
+        #     soft_edges=True)
+        # ])
+
+        # for idx in range(gnn_size - 1):
+        #     self.net.append(
+        #         ModifiedPosEGNN(
+        #             in_dim=6,
+        #             out_dim=6,
+        #             m_dim=hidden_dim,
+        #             fourier_features=2,
+        #             num_nearest_neighbors=6,
+        #             norm_coors=True,
+        #             soft_edges=True
+        #         )
+        #     )
 
         self.mlp = nn.Sequential(
             nn.LazyLinear(hidden_dim),
@@ -45,10 +58,13 @@ class ARNet(nn.Module):
         )
 
     def forward(self, x, mask=None):
-        feats = x
+        # feats = x
+        feats = x.repeat(1, 1, 2)
+        coors = x
 
         for net in self.net:
-            feats = net(feats, mask=mask)
+            
+            feats, coors = net(feats, coors, mask=mask)
         
         feats = torch.sum(feats * mask.unsqueeze(2), dim=1) / torch.sum(mask, dim=1, keepdim=True)
         feats = self.mlp(feats).view(x.shape[0], self.idx[1] - self.idx[0], 6)
