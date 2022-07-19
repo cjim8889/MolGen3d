@@ -3,6 +3,7 @@ import torch
 from models.egnn import ModifiedPosEGNN
 from models import CoorFlow
 from models.classifier import PosClassifier
+from models.argmax import AtomFlow
 
 def remove_mean_with_mask(x, node_mask):
     # assert (x * (1 - node_mask)).abs().sum().item() < 1e-8
@@ -25,14 +26,14 @@ def remove_mean_with_mask(x, node_mask):
 # )
 
 net = CoorFlow(
-    hidden_dim=128,
-    gnn_size=3,
-    block_size=8,
+    hidden_dim=64,
+    gnn_size=1,
+    block_size=4,
 )
 
 net.load_state_dict(
     torch.load(
-        "model_checkpoint_qof5w8ec_90.pt",
+        "model_checkpoint_1eac4ec9_60.pt",
         map_location="cpu"
     )['model_state_dict']
 )
@@ -63,5 +64,4 @@ with torch.no_grad():
 
     pred = torch.sigmoid(classifier(out, mask=mask))
 
-
-    print(torch.sum(pred > 0.5))
+    

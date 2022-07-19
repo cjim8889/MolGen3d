@@ -42,11 +42,11 @@ if __name__ == "__main__":
 
     # pos = batch.pos
     # mask = batch.mask
-    batch_size = 300
+    batch_size = 400
 
-    coor_net = CoorFlow(hidden_dim=128, gnn_size=3, block_size=8)
+    coor_net = CoorFlow(hidden_dim=64, gnn_size=1, block_size=4)
     coor_net.load_state_dict(
-        torch.load("model_checkpoint_qof5w8ec_90.pt", map_location="cpu")['model_state_dict']
+        torch.load("model_checkpoint_1eac4ec9_590.pt", map_location="cpu")['model_state_dict']
     )
 
     z = base.sample(sample_shape=(batch_size, 29, 3))
@@ -56,12 +56,19 @@ if __name__ == "__main__":
     for idx in range(batch_size):
         mask[idx, mask_size[idx]:] = False
 
+
     
     z = z * mask.unsqueeze(2)
     z = remove_mean_with_mask(z, node_mask=mask)
 
     with torch.no_grad():
         pos, _ = coor_net.inverse(z, mask=mask)
+    # train_loader, _ = get_datasets(type="mqm9", batch_size=batch_size)
+
+    # batch = next(iter(train_loader))
+
+    # pos = batch.pos
+    # mask = batch.mask
 
     # # print(pos[0])
     net = AtomFlow(
@@ -110,13 +117,13 @@ if __name__ == "__main__":
             for mol in mols:
                 smiles = Chem.MolToSmiles(mol)
 
-                if "." in smiles:
-                    continue
-                else:
-                    valid += 1
-                    valid_smiles.append(smiles)
-                    valid_mols.append(mol)
-                    break
+                # if "." in smiles:
+                    # continue
+                # else:
+                valid += 1
+                valid_smiles.append(smiles)
+                valid_mols.append(mol)
+                break
         except:
             pass
     
