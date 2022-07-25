@@ -1,5 +1,5 @@
 from .dataset import get_datasets
-from models.argmax import AtomFlow
+from models.argmax.atom import AtomFlow
 from .utils import create_model, argmax_criterion
 from survae.utils import sum_except_batch
 
@@ -8,6 +8,7 @@ import torch
 import numpy as np
 from torch import nn
 from torch.cuda.amp import GradScaler, autocast
+from .visualise import plot_data3d
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class VertExp:
@@ -23,13 +24,14 @@ class VertExp:
         self.train_loader, self.test_loader = get_datasets(type="mqm9", batch_size=self.batch_size)
         self.network, self.optimiser, self.scheduler = create_model(self.config)
         self.base = torch.distributions.Normal(loc=0., scale=1.)
+        self.plot_size = 16
 
     def train(self):
         mask = torch.ones(1, 29, device=device, dtype=torch.bool)
         mask[:, -1] = False
 
         self.network(
-            torch.randint(0, 6, (1, 29), device=device),
+            torch.randint(0, 5, (1, 29), device=device),
             torch.randn(1, 29, 3, device=device),
             mask = mask
         )
@@ -45,7 +47,7 @@ class VertExp:
 
                 for idx, batch_data in enumerate(self.train_loader):
                     
-                    x = batch_data.x.to(torch.long).to(device)
+                    x = batch_data.x.to(torch.long).squeeze(2).to(device)
                     pos = batch_data.pos.to(device)
                     mask = batch_data.mask.to(device)
 
@@ -81,6 +83,37 @@ class VertExp:
 
                         
                         loss_step = 0
+                    
+                    if step % 400 == 0:
+                        with torch.no_grad():
+                            z = torch.randn(self.plot_size, 29, 5, device=device)
+                            atoms_types, _ = self.network.inverse(z, pos[:self.plot_size], mask=mask[:self.plot_size])
+                            
+                            atoms_types = atoms_types.to("cpu")
+                            pos = batch_data.pos[:self.plot_size]
+                            mask = batch_data.mask[:self.plot_size]
+
+                            for idx in range(atoms_types.shape[0]):
+                                aty = atoms_types[idx].view(-1).numpy()
+                                p = pos[idx].view(-1, 3).numpy()
+                                
+                                plot_data3d(
+                                    positions=p,
+                                    atom_type=aty,
+                                    spheres_3d=False,
+                                    save_path=f"{run.id}_{epoch}_{step}_{idx}.png"
+                                )
+
+                            wandb.log(
+                                {
+                                    "epoch": epoch,
+                                    "image": [
+                                        wandb.Image(f"{run.id}_{epoch}_{step}_{idx}.png") for idx in range(atoms_types.shape[0])
+                                    ]
+                                },
+                                step=step
+                            )
+
 
                 self.scheduler.step()
                 wandb.log({"Learning Rate/Epoch": self.scheduler.get_last_lr()[0]})
