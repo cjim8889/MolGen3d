@@ -63,5 +63,3 @@ with torch.no_grad():
     out, _ = net.inverse(z, mask=mask)
 
     pred = torch.sigmoid(classifier(out, mask=mask))
-
-    

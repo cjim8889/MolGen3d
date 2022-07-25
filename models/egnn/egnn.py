@@ -5,7 +5,6 @@ import torch.nn.functional as F
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
-
 def exists(val):
     return val is not None
 
@@ -63,6 +62,7 @@ class LipSwish_(nn.Module):
 
 # SiLU = nn.SiLU if hasattr(nn, 'SiLU') else Swish_
 # SiLU = LipSwish_
+
 # helper classes
 
 # this follows the same strategy for normalization as done in SE3 Transformers
