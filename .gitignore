@@ -11,6 +11,8 @@ wandb/
 # C extensions
 *.so
 
+*.out
+nul
 *.pt
 *.png
 
