@@ -3,7 +3,7 @@ from utils import get_datasets
 import matplotlib.pyplot as plt
 from rdkit import Chem
 from rdkit.Chem import Draw
-from models.argmax import AtomFlow
+from models.argmax.atom import AtomFlow
 from models import CoorFlow
 import torch
 import numpy as np
@@ -42,9 +42,10 @@ if __name__ == "__main__":
 
     # pos = batch.pos
     # mask = batch.mask
-    batch_size = 200
+    batch_size = 100
 
     coor_net = CoorFlow(hidden_dim=64, gnn_size=1, block_size=4)
+    
     coor_net.load_state_dict(
         torch.load("outputs/model_checkpoint_1eac4ec9_590.pt", map_location="cpu")['model_state_dict']
     )
@@ -66,18 +67,19 @@ if __name__ == "__main__":
 
 
     net = AtomFlow(
-        hidden_dim=128,
-        block_size=10,
-        encoder_size=5
+        hidden_dim=32,
+        block_size=6,
+        encoder_size=4,
+        gnn_size=1
     )
 
     net.load_state_dict(
-        torch.load("outputs/model_checkpoint_1642pd3z_80.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_3pchowk4_10.pt", map_location="cpu")['model_state_dict']
     )
 
     with torch.no_grad():
         atoms_types, _ =net.inverse(
-            base.sample(sample_shape=(pos.shape[0], 29, 6)),
+            base.sample(sample_shape=(pos.shape[0], 29, 5)),
             pos,
             mask = mask
         )
