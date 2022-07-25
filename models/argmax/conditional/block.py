@@ -1,9 +1,7 @@
-from sklearn import utils
 from survae.transforms.bijections import ConditionalBijection
 import torch
 from torch import nn
 
-import numpy as np
 from .coupling import MaskedConditionalCouplingFlow
 
 def create_mask_equivariant(idx, max_size, invert=False):

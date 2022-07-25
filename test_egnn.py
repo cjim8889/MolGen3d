@@ -1,48 +1,65 @@
-from models.egnn import EGNN, ResCoorFlow
-from models.egnn.residual_flows.layers import iResBlock
+from re import L
 import torch
-from torch import nn
-class EGNN_(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
+from models.egnn import ModifiedPosEGNN
+from models import CoorFlow
+from models.classifier import PosClassifier
+from models.argmax import AtomFlow
 
-        self.egnn = EGNN(
-            3, 
-            m_dim=64, 
-            num_nearest_neighbors=0,
-            soft_edges=True,
-            update_coors=False,
-            norm_feats=True
-        )
-    
-    def forward(self, x: torch.Tensor, mask=None) -> torch.Tensor:
-        feats, _ = self.egnn(x, x, mask=mask)
-        return feats
+def remove_mean_with_mask(x, node_mask):
+    # assert (x * (1 - node_mask)).abs().sum().item() < 1e-8
+    node_mask = node_mask.unsqueeze(2)
+    N = node_mask.sum(1, keepdims=True)
+
+    mean = torch.sum(x, dim=1, keepdim=True) / N
+    x = x - mean * node_mask
+    return x
+
+# net = ModifiedPosEGNN(
+#     in_dim = 3,
+#     out_dim = 6,
+#     m_dim=64,
+#     fourier_features = 2,
+#     num_nearest_neighbors = 6,
+#     # dropout = 0.1,
+#     norm_coors=True,
+#     soft_edges=True
+# )
+
+net = CoorFlow(
+    hidden_dim=64,
+    gnn_size=1,
+    block_size=4,
+)
+
+net.load_state_dict(
+    torch.load(
+        "model_checkpoint_1eac4ec9_60.pt",
+        map_location="cpu"
+    )['model_state_dict']
+)
+
+classifier = PosClassifier(
+    feats_dim=64, hidden_dim=256, gnn_size=5
+)
+
+classifier.load_state_dict(torch.load("classifier.pt", map_location="cpu")['model_state_dict'])
 
 
-if __name__ == "__main__":
+with torch.no_grad():
 
-    net = ResCoorFlow(
-        hidden_dim=16,
-        block_size=1
-    )
+    batch_size = 128
+    base = torch.distributions.Normal(loc=0., scale=1.)
 
-    feats = torch.randn(1, 10, 3)
-    mask = torch.ones(1, 10, dtype=torch.bool)
-    mask[:, -2:] = False
+    z = base.sample(sample_shape=(batch_size, 29, 3))
+    mask = torch.ones(batch_size, 29).to(torch.bool)
+    mask_size = torch.randint(3, 29, (batch_size,))
 
-    feats = feats * mask.unsqueeze(2)
-    # feats += torch.ones_like(feats) * ~mask.unsqueeze(2)
-    # feats = net(feats)
-    feats = feats.detach()
+    for idx in range(batch_size):
+        mask[idx, mask_size[idx]:] = False
 
+    z = z * mask.unsqueeze(2)
+    z = remove_mean_with_mask(z, node_mask=mask)
 
-    z, logp = net(feats)
-    # print(z, logp)
-    x, logp = net.inverse(z)
-    
-    print(z)
-    print(feats)
-    print(x)
-    # x = x * mask.unsqueeze(2)
-    # print(x, feats)
+    out, _ = net.inverse(z, mask=mask)
+
+    pred = torch.sigmoid(classifier(out, mask=mask))

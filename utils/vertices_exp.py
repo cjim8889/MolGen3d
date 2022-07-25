@@ -7,6 +7,7 @@ import wandb
 import torch
 import numpy as np
 from torch import nn
+from torch.cuda.amp import GradScaler, autocast
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class VertExp:
@@ -34,6 +35,7 @@ class VertExp:
         )
         print(f"Model Parameters: {sum([p.numel() for p in self.network.parameters()])}")
 
+        scaler = GradScaler()
         with wandb.init(project="molecule-flow-3d", config=self.config, entity="iclac") as run:
             step = 0
             for epoch in range(self.config['epochs']):
@@ -47,24 +49,34 @@ class VertExp:
                     pos = batch_data.pos.to(device)
                     mask = batch_data.mask.to(device)
 
-                    self.optimiser.zero_grad()
+                    self.optimiser.zero_grad(set_to_none=True)
 
-                    z, log_det = self.network(x, pos, mask=mask)
+                    with autocast(enabled=self.config['autocast']):
+                        z, log_det = self.network(x, pos, mask=mask)
 
                     log_prob = sum_except_batch(self.base.log_prob(z))
-
                     loss = argmax_criterion(log_prob, log_det)
-                    loss.backward()
 
-                    nn.utils.clip_grad_norm_(self.network.parameters(), 1)
-                    self.optimiser.step()
+                    if self.config['autocast']:
+                        scaler.scale(loss).backward()
+                        scaler.unscale_(self.optimiser)
+                        nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=1)
 
-                    loss_step += loss
-                    loss_ep_train += loss
+                        scaler.step(self.optimiser)
+                        scaler.update()
+                    else:
+                        loss.backward()
+
+                        nn.utils.clip_grad_norm_(self.network.parameters(), 1)
+                        self.optimiser.step()
+
+                    loss_step += loss.detach()
+                    loss_ep_train += loss.detach()
 
                     step += 1
-                    if idx % 5 == 0:
+                    if idx % 10 == 0:
                         ll = (loss_step / 5.).item()
+                        print(ll)
                         wandb.log({"epoch": epoch, "NLL": ll}, step=step)
 
                         

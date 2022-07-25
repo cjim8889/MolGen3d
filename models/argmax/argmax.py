@@ -33,7 +33,8 @@ class AtomFlow(nn.Module):
     def __init__(self, 
         hidden_dim=32,
         block_size=2,
-        num_classes=6
+        num_classes=6,
+        encoder_size=2
         ):
 
         super().__init__()
@@ -56,7 +57,7 @@ class AtomFlow(nn.Module):
                 max_nodes=29,
                 num_classes=num_classes,
                 ar_net_init=ar_net_init_conditional(hidden_dim=hidden_dim),
-            ) for _ in range(block_size)
+            ) for _ in range(encoder_size)
         ]
 
         conditional_flow = ConditionalInverseFlow(
@@ -76,7 +77,15 @@ class AtomFlow(nn.Module):
                 max_nodes=29,
                 num_classes=num_classes,
                 ar_net_init=ar_net_init_block(hidden_dim=hidden_dim, gnn_size=1),
-            ) for _ in range(block_size)]
+                partition_size=1
+            ) for _ in range(1)]
+
+        self.transforms += [ConditionalCouplingBlockFlow(
+            max_nodes=29,
+            num_classes=6,
+            ar_net_init=ar_net_init_block(hidden_dim=hidden_dim, gnn_size=1),
+            partition_size=2
+        ) for _ in range(block_size)]
     
     def forward(self, x, context, mask=None):
         log_prob = torch.zeros(x.shape[0], device=x.device)

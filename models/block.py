@@ -1,3 +1,4 @@
+
 from survae.transforms.bijections import Bijection
 from .utils import create_mask_ar, create_mask_equivariant
 from .coupling import MaskedCouplingFlow
@@ -7,7 +8,7 @@ import torch
 from torch.nn.utils.parametrizations import spectral_norm
 from torch import nn
 from egnn_pytorch import EGNN
-from .egnn.egnn import EGNN as LipEGNN
+from .egnn import ModifiedPosEGNN
 
 class ARNet(nn.Module):
     def __init__(self, hidden_dim=32, gnn_size=1, idx=(0, 2)):
@@ -15,19 +16,34 @@ class ARNet(nn.Module):
 
         self.idx = idx
 
-        self.net = nn.ModuleList([LipEGNN(dim=6, m_dim=hidden_dim, norm_feats=True, soft_edges=True, coor_weights_clamp_value=2., num_nearest_neighbors=0, update_coors=False) for _ in range(gnn_size)])
+        self.net = nn.ModuleList(
+            [
+                EGNN(
+                    dim=6,
+                    m_dim=hidden_dim, 
+                    soft_edges=True, 
+                    coor_weights_clamp_value=2., 
+                    num_nearest_neighbors=6, 
+                    update_coors=False
+                ) for _ in range(gnn_size)
+            ]
+        )
+
 
         self.mlp = nn.Sequential(
             spectral_norm(nn.Linear(6, hidden_dim)),
             nn.ReLU(),
             spectral_norm(nn.Linear(hidden_dim, (self.idx[1] - self.idx[0]) * 6)),
         )
-        
+
+
     def forward(self, x, mask=None):
+        # feats = x
         feats = x.repeat(1, 1, 2)
         coors = x
 
         for net in self.net:
+            
             feats, coors = net(feats, coors, mask=mask)
         
         feats = torch.sum(feats * mask.unsqueeze(2), dim=1) / torch.sum(mask, dim=1, keepdim=True)
@@ -46,17 +62,18 @@ class CouplingBlockFlow(Bijection):
     last_dimension=3,
     ar_net_init=ar_net_init(hidden_dim=64, gnn_size=1),
     mask_init=create_mask_equivariant,
-    max_nodes=29):
+    max_nodes=29,
+    partition_size=2):
         
         super(CouplingBlockFlow, self).__init__()
         self.transforms = nn.ModuleList()
 
-        for idx in range(0, max_nodes, 2):
-            ar_net = ar_net_init((idx, min(idx + 2, max_nodes)))
-            mask = mask_init([i for i in range(idx, min(idx + 2, max_nodes))], max_nodes)
+        for idx in range(0, max_nodes, partition_size):
+            ar_net = ar_net_init((idx, min(idx + partition_size, max_nodes)))
+            mask = mask_init([i for i in range(idx, min(idx + partition_size, max_nodes))], max_nodes)
             tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
             self.transforms.append(tr)
-    
+
     def forward(self, x, context=None, mask=None, logs=None):
         log_prob = torch.zeros(x.shape[0], device=x.device)
 

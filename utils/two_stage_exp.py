@@ -1,5 +1,6 @@
 from .dataset import get_datasets
 from models import CoorFlow
+from models.classifier import PosClassifier
 from .utils import create_model, argmax_criterion
 from survae.utils import sum_except_batch
 
@@ -8,7 +9,6 @@ import torch
 import numpy as np
 from torch import nn
 from torch.cuda.amp import GradScaler, autocast
-import gc
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # @torch.jit.script
@@ -42,10 +42,10 @@ def center_gravity_zero_gaussian_log_likelihood_with_mask(x, node_mask):
     return log_px
 
 
-class CoorExp:
+class TwoStageCoorExp:
     def __init__(self, config) -> None:
         self.config = config
-        self.config['flow'] = "CoorFlow" 
+        self.config['flow'] = "TwoStageCoorFlow" 
         self.config['model'] = CoorFlow
 
         if "hidden_dim" not in self.config:
@@ -57,7 +57,16 @@ class CoorExp:
         self.batch_size = self.config["batch_size"] if "batch_size" in self.config else 128
         self.train_loader, self.test_loader = get_datasets(type="mqm9", batch_size=self.batch_size)
         self.network, self.optimiser, self.scheduler = create_model(self.config)
-        self.base = torch.distributions.Normal(loc=0., scale=1.)
+
+        self.classifier = PosClassifier(feats_dim=64, hidden_dim=256, gnn_size=5)
+        self.classifier.load_state_dict(torch.load(config['classifier'], map_location=device)['model_state_dict'])
+
+        self.classifier = self.classifier.to(device)
+
+        for param in self.classifier.parameters():
+            param.requires_grad = False
+
+        # self.base = torch.distributions.Normal(loc=torch.tensor(0, device=device), scale=torch.tensor(1, device=device))
         self.total_logged = 0
 
     def train(self):
@@ -70,8 +79,11 @@ class CoorExp:
             for epoch in range(self.config['epochs']):
                 loss_step = 0
                 loss_ep_train = 0
-                self.network.train()
 
+                loss_cl_step = 0
+                log_p_step = 0
+
+                self.network.train()
                 for idx, batch_data in enumerate(self.train_loader):
                     
                     input = batch_data.pos.to(device)
@@ -92,7 +104,23 @@ class CoorExp:
                     else:
                         log_prob = sum_except_batch(self.base.log_prob(z))
 
-                    loss = argmax_criterion(log_prob, log_det)
+                    
+                    # # sample = self.base.sample(sample_shape=(self.batch_size, 29, 3))
+                    sample = torch.randn(input.shape[0], 29, 3, device=device)
+                    sample = sample * mask.unsqueeze(2)
+                    sample = remove_mean_with_mask(sample, node_mask=mask)
+
+                    with autocast(enabled=self.config['autocast']):
+                        sample_pos, _ = self.network.inverse(sample, mask=mask)
+                        pred = self.classifier(sample_pos, mask=mask)
+
+                    classifier_loss = -torch.sigmoid(pred).sum()
+                    log_p = argmax_criterion(log_prob, log_det)
+
+                    if epoch > 40:
+                        loss = classifier_loss + log_p
+                    else:
+                        loss = classifier_loss * 10 + log_p
 
                     if (loss > 1e3 and epoch > 5) or torch.isnan(loss):
                         if self.total_logged < 30:
@@ -107,9 +135,10 @@ class CoorExp:
 
                             self.total_logged += 1
 
-
+                    log_p_step += log_p.detach()
                     loss_step += loss.detach()
                     loss_ep_train += loss.detach()
+                    loss_cl_step += classifier_loss.detach()
 
                     if self.config['autocast']:
                         scaler.scale(loss).backward()
@@ -126,9 +155,15 @@ class CoorExp:
                     step += 1
                     if idx % 10 == 0:
                         ll = (loss_step / 10.).item()
-                        wandb.log({"epoch": epoch, "NLL": ll}, step=step)
+                        lp = (log_p_step / 10.).item()
+
+                        cl = (loss_cl_step / 10.).item()
+
+                        wandb.log({"epoch": epoch, "Loss": ll, "Log_p": lp, "Classifier_Loss": cl}, step=step)
 
                         loss_step = 0
+                        loss_cl_step = 0
+                        log_p_step = 0
 
                 if self.scheduler is not None:
                     self.scheduler.step()
