@@ -1,5 +1,5 @@
 import argparse
-from utils import CoorExp, VertExp, ResCoorExp
+from utils import CoorExp, VertExp, TwoStageCoorExp
 import torch
 from torch import nn
 
@@ -23,6 +23,13 @@ parser.add_argument("--scheduler_gamma", help="Scheduler gamma", type=float, def
 
 parser.add_argument("--upload", help="Upload to wandb", type=bool, default=False)
 parser.add_argument("--upload_interval", help="Upload to wandb every n epochs", type=int, default=10)
+
+parser.add_argument("--autocast", help="Autocast", type=int, default=0)
+parser.add_argument("--loadfrom", help="Load from checkpoint", type=str, default=None)
+parser.add_argument("--no_opt", help="No optimiser", type=int, default=0)
+
+parser.add_argument("--encoder_size", help="Encoder Size for Vert Net", type=int, default=2)
+parser.add_argument("--classifier", help="Classifier", type=str, default=None)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -56,7 +63,10 @@ if __name__ == "__main__":
             hidden_dim=args.hidden_dim,
             block_size=args.block_size,
             gnn_size=args.gnn_size,
-            base=args.base
+            base=args.base,
+            loadfrom=args.loadfrom,
+            autocast=args.autocast != 0,
+            no_opt=args.no_opt == 0
         )
 
         exp = CoorExp(config=config)
@@ -77,11 +87,15 @@ if __name__ == "__main__":
             upload_interval=args.upload_interval,
             hidden_dim=args.hidden_dim,
             block_size=args.block_size,
+            autocast=args.autocast != 0,
+            loadfrom=args.loadfrom,
+            no_opt=args.no_opt == 0,
+            encoder_size=args.encoder_size
         )
 
         exp = VertExp(config=config)
     
-    if args.type  == "res_coor":
+    if args.type == "2stage":
         config = dict(
             epochs=args.epochs,
             batch_size=args.batch_size,
@@ -99,8 +113,13 @@ if __name__ == "__main__":
             hidden_dim=args.hidden_dim,
             block_size=args.block_size,
             gnn_size=args.gnn_size,
+            base=args.base,
+            loadfrom=args.loadfrom,
+            autocast=args.autocast != 0,
+            no_opt=args.no_opt == 0,
+            classifier=args.classifier
         )
 
-        exp = ResCoorExp(config=config)
+        exp = TwoStageCoorExp(config=config)
 
     exp.train()
