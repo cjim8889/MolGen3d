@@ -45,7 +45,7 @@ class VertExp:
 
                 for idx, batch_data in enumerate(self.train_loader):
                     
-                    x = batch_data.x[..., 0].to(torch.long).to(device)
+                    x = batch_data.x.to(torch.long).to(device)
                     pos = batch_data.pos.to(device)
                     mask = batch_data.mask.to(device)
 
@@ -54,7 +54,7 @@ class VertExp:
                     with autocast(enabled=self.config['autocast']):
                         z, log_det = self.network(x, pos, mask=mask)
 
-                    log_prob = sum_except_batch(self.base.log_prob(z))
+                    log_prob = sum_except_batch(self.base.log_prob(z) * mask.unsqueeze(2))
                     loss = argmax_criterion(log_prob, log_det)
 
                     if self.config['autocast']:
