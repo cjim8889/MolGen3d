@@ -5,6 +5,7 @@ from .coupling import MaskedCouplingFlow
 from survae.transforms.bijections import ConditionalBijection, Bijection, ActNormBijection1d
 
 import torch
+from torch.nn.utils.parametrizations import spectral_norm
 from torch import nn
 from egnn_pytorch import EGNN
 from .egnn import ModifiedPosEGNN
@@ -28,11 +29,13 @@ class ARNet(nn.Module):
             ]
         )
 
+
         self.mlp = nn.Sequential(
-            nn.LazyLinear(hidden_dim),
+            spectral_norm(nn.Linear(6, hidden_dim)),
             nn.ReLU(),
-            nn.LazyLinear((self.idx[1] - self.idx[0]) * 6),
+            spectral_norm(nn.Linear(hidden_dim, (self.idx[1] - self.idx[0]) * 6)),
         )
+
 
     def forward(self, x, mask=None):
         # feats = x

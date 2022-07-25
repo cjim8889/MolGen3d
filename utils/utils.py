@@ -12,7 +12,9 @@ def create_model(config):
     elif config['flow'] == "AtomFlow":
         model = config['model'](hidden_dim=config['hidden_dim'], block_size=config['block_size'], encoder_size=config['encoder_size'])
         model = model.to(device)
-
+    elif config['flow'] == "ResCoorFlow":
+        model = config['model'](hidden_dim=config['hidden_dim'], block_size=config['block_size'], gnn_size=config['gnn_size'])
+        model = model.to(device)
     if "weight_init" in config:
         model.apply(config["weight_init"])
 
