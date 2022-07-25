@@ -3,15 +3,15 @@ import torch
 
 def create_mask_equivariant(idx, max_size, invert=False):
 
-    mask = torch.zeros(max_size, dtype=torch.float32)
+    mask = torch.zeros(max_size, dtype=torch.bool)
 
-    mask[idx] = 1
+    mask[idx] = True
     mask = mask.view(1, max_size)
 
     if not invert:
-        mask = 1 - mask
+        mask = ~mask
 
-    return mask.to(torch.bool)
+    return mask
 
 def create_mask_ar(idx, max_shape, invert=False):
     mask = torch.zeros(max_shape, dtype=torch.float32)

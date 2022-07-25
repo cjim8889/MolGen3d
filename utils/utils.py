@@ -10,7 +10,12 @@ def create_model(config):
         model = config['model'](hidden_dim=config['hidden_dim'], gnn_size=config['gnn_size'], block_size=config['block_size'])
         model = model.to(device)
     elif config['flow'] == "AtomFlow":
-        model = config['model'](hidden_dim=config['hidden_dim'], block_size=config['block_size'], encoder_size=config['encoder_size'])
+        model = config['model'](
+            hidden_dim=config['hidden_dim'], 
+            block_size=config['block_size'], 
+            encoder_size=config['encoder_size'],
+            num_classes=5,
+        )
         model = model.to(device)
     elif config['flow'] == "ResCoorFlow":
         model = config['model'](hidden_dim=config['hidden_dim'], block_size=config['block_size'], gnn_size=config['gnn_size'])
