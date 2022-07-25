@@ -1,7 +1,7 @@
 import argparse
 from utils import CoorExp, VertExp, TwoStageCoorExp
 import torch
-from torch import autocast, nn
+from torch import nn
 
 parser = argparse.ArgumentParser(description="Molecular Generation MSc Project: 3D")
 parser.add_argument("--type", help="Type of experiments e.g. argmaxadj")
