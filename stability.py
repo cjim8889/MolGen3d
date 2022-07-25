@@ -42,11 +42,11 @@ if __name__ == "__main__":
 
     # pos = batch.pos
     # mask = batch.mask
-    batch_size = 400
+    batch_size = 200
 
     coor_net = CoorFlow(hidden_dim=64, gnn_size=1, block_size=4)
     coor_net.load_state_dict(
-        torch.load("model_checkpoint_1eac4ec9_590.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_1eac4ec9_590.pt", map_location="cpu")['model_state_dict']
     )
 
     z = base.sample(sample_shape=(batch_size, 29, 3))
@@ -63,14 +63,8 @@ if __name__ == "__main__":
 
     with torch.no_grad():
         pos, _ = coor_net.inverse(z, mask=mask)
-    # train_loader, _ = get_datasets(type="mqm9", batch_size=batch_size)
 
-    # batch = next(iter(train_loader))
 
-    # pos = batch.pos
-    # mask = batch.mask
-
-    # # print(pos[0])
     net = AtomFlow(
         hidden_dim=128,
         block_size=10,
@@ -78,7 +72,7 @@ if __name__ == "__main__":
     )
 
     net.load_state_dict(
-        torch.load("model_checkpoint_1642pd3z_80.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_1642pd3z_80.pt", map_location="cpu")['model_state_dict']
     )
 
     with torch.no_grad():
@@ -94,6 +88,7 @@ if __name__ == "__main__":
 
     valid_smiles =[]
     valid_mols = []
+    valid_idx = []
     # print(atoms_types[0])
     for idx in range(atoms_types.shape[0]):
         size = mask[idx].to(torch.long).sum()
@@ -117,24 +112,21 @@ if __name__ == "__main__":
             for mol in mols:
                 smiles = Chem.MolToSmiles(mol)
 
-                # if "." in smiles:
-                    # continue
-                # else:
-                valid += 1
-                valid_smiles.append(smiles)
-                valid_mols.append(mol)
-                break
+                if "." in smiles:
+                    continue
+                else:
+                    valid += 1
+                    valid_idx.append(idx)
+                    valid_smiles.append(smiles)
+                    valid_mols.append(mol)
+                    break
         except:
             pass
     
-    # plot = Draw.MolsToGridImage(valid_mols, molsPerRow=4, subImgSize=(500, 500), legends=valid_smiles)
-    # number = np.random.randint(0, 10000)
-    # plot.save(f"local_interpolcation_{number}.png")
+    plot = Draw.MolsToGridImage(valid_mols, molsPerRow=4, subImgSize=(500, 500), legends=valid_smiles)
+    number = np.random.randint(0, 10000)
+    plot.save(f"local_interpolcation_{number}.png")
 
     pprint(valid_smiles)
     print(valid * 1.0 / batch_size)
     
-    # # # print(atom_types, pos[0:1], x[0: 1])
-
-    
-    # # # print(pos[0])

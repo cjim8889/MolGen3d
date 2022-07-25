@@ -28,29 +28,6 @@ class ARNet(nn.Module):
             ]
         )
 
-        # self.net = nn.ModuleList([ModifiedPosEGNN(
-        #     in_dim=3,
-        #     out_dim=6, 
-        #     m_dim=hidden_dim, 
-        #     fourier_features=2,
-        #     num_nearest_neighbors=6,
-        #     norm_coors=True,
-        #     soft_edges=True)
-        # ])
-
-        # for idx in range(gnn_size - 1):
-        #     self.net.append(
-        #         ModifiedPosEGNN(
-        #             in_dim=6,
-        #             out_dim=6,
-        #             m_dim=hidden_dim,
-        #             fourier_features=2,
-        #             num_nearest_neighbors=6,
-        #             norm_coors=True,
-        #             soft_edges=True
-        #         )
-        #     )
-
         self.mlp = nn.Sequential(
             nn.LazyLinear(hidden_dim),
             nn.ReLU(),

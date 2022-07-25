@@ -1,8 +1,6 @@
 import torch
-import numpy as np
-'''
-Verticle mask to make to model equivariant
-'''
+
+
 def create_mask_equivariant(idx, max_size, invert=False):
 
     mask = torch.zeros(max_size, dtype=torch.float32)

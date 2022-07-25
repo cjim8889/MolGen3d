@@ -15,7 +15,7 @@ class ArgmaxSurjection(Surjection):
         self.softplus = Softplus()
         self.rearrange = Rearrange("B W -> B W 1")
 
-  
+    
     def forward(self, x, mask=None):
         u, log_pu = self.encoder.sample_with_log_prob(context=x)
         
