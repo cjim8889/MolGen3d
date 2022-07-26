@@ -1,5 +1,5 @@
 import argparse
-from utils import CoorExp, VertExp, TwoStageCoorExp
+from utils import CoorExp, VertExp, TwoStageCoorExp, ResCoorExp
 import torch
 from torch import nn
 
@@ -121,5 +121,28 @@ if __name__ == "__main__":
         )
 
         exp = TwoStageCoorExp(config=config)
+    if args.type  == "res":
+        config = dict(
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            optimiser=args.optimiser,
+            learning_rate=args.lr,
+            weight_decay=args.weight_decay,
+            scheduler=args.scheduler,
+            scheduler_gamma=args.scheduler_gamma,
+            scheduler_step=args.scheduler_step,
+            dataset="MQM9",
+            architecture="Flow",
+            weight_init=weight_init,
+            upload=args.upload,
+            upload_interval=args.upload_interval,
+            hidden_dim=args.hidden_dim,
+            block_size=args.block_size,
+            base=args.base,
+            loadfrom=args.loadfrom,
+            autocast=args.autocast != 0,
+            no_opt=args.no_opt == 0
+        )
 
+        exp = ResCoorExp(config=config)
     exp.train()

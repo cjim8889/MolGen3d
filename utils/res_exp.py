@@ -1,5 +1,5 @@
 from .dataset import get_datasets
-from models.egnn import ResCoorFlow
+from models.egnn.resflow import ResCoorFlow
 from .utils import create_model, argmax_criterion
 from survae.utils import sum_except_batch
 
@@ -44,21 +44,15 @@ class ResCoorExp:
                 for idx, batch_data in enumerate(self.train_loader):
                     
                     input = batch_data.pos.to(device)
-                    # mask = batch_data.mask.to(device)
+                    mask = batch_data.mask.to(device)
 
                     self.optimiser.zero_grad()
                     
                     with autocast(enabled=False):
-                        z, log_det = self.network(input)
+                        z, log_det = self.network(input, mask=mask)
                         
-
-                        if torch.isnan(z).any() or torch.isnan(log_det).any():
-                            # wandb.log({"epoch": epoch, "z": z, "log_det": log_det}, step=step)
-                            print("NaN detected")
-                            continue
-
-                        log_prob = sum_except_batch(self.base.log_prob(z))
-                        loss = argmax_criterion(log_prob, log_det)
+                    log_prob = sum_except_batch(self.base.log_prob(z) * mask.unsqueeze(2))
+                    loss = argmax_criterion(log_prob, log_det)
 
                     if (loss > 1e3 and epoch > 5) or torch.isnan(loss):
                         if self.total_logged < 30:
@@ -82,10 +76,10 @@ class ResCoorExp:
                     nn.utils.clip_grad_norm_(self.network.parameters(), 1)
                     self.optimiser.step()
 
+                    print(loss.item())
                     step += 1
                     if idx % 10 == 0:
                         ll = (loss_step / 10.).item()
-                        # print(ll)
                         wandb.log({"epoch": epoch, "NLL": ll}, step=step)
 
                         loss_step = 0
