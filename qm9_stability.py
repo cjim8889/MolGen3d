@@ -23,7 +23,7 @@ if __name__ == "__main__":
     )
 
     net.load_state_dict(
-        torch.load("outputs/model_checkpoint_3pchowk4_15.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_3pchowk4_65.pt", map_location="cpu")['model_state_dict']
     )
 
     print("Loading model...")
@@ -82,6 +82,6 @@ if __name__ == "__main__":
         
         print(validity * 1.0 / total_count)
 
-    pprint(valid_smiles)
+    # pprint(valid_smiles)
         
 

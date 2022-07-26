@@ -5,10 +5,9 @@ from .coupling import MaskedCouplingFlow
 from survae.transforms.bijections import ConditionalBijection, Bijection, ActNormBijection1d
 
 import torch
-from torch.nn.utils.parametrizations import spectral_norm
 from torch import nn
-from egnn_pytorch import EGNN
-from .egnn import ModifiedPosEGNN
+# from egnn_pytorch import EGNN
+from .argmax.c_gnn import ModifiedEGNN
 
 class ARNet(nn.Module):
     def __init__(self, hidden_dim=32, gnn_size=1, idx=(0, 2)):
@@ -18,37 +17,47 @@ class ARNet(nn.Module):
 
         self.net = nn.ModuleList(
             [
-                EGNN(
+                ModifiedEGNN(
                     dim=6,
                     m_dim=hidden_dim, 
-                    soft_edges=True, 
-                    coor_weights_clamp_value=2., 
-                    num_nearest_neighbors=6, 
-                    update_coors=False
+                    soft_edges=True,
+                    dropout=0.1,
+                    norm_feats=True, 
+                    norm_coors=True,
+                    coor_weights_clamp_value=1., 
+                    num_nearest_neighbors=0,
+                    update_coors=False, 
                 ) for _ in range(gnn_size)
             ]
         )
 
 
         self.mlp = nn.Sequential(
-            spectral_norm(nn.Linear(6, hidden_dim)),
+            nn.Linear(6, hidden_dim),
             nn.ReLU(),
-            spectral_norm(nn.Linear(hidden_dim, (self.idx[1] - self.idx[0]) * 6)),
+            nn.Linear(hidden_dim, (self.idx[1] - self.idx[0]) * 6),
         )
 
 
     def forward(self, x, mask=None):
         # feats = x
+        # feats = torch.zeros(
+        #     x.shape[0],
+        #     x.shape[1],
+        #     x.shape[2] * 2,
+        #     device=x.device
+        # )
         feats = x.repeat(1, 1, 2)
         coors = x
 
         for net in self.net:
-            
             feats, coors = net(feats, coors, mask=mask)
         
-        feats = torch.sum(feats * mask.unsqueeze(2), dim=1) / torch.sum(mask, dim=1, keepdim=True)
+        # feats = torch.sum(feats * mask.unsqueeze(2), dim=1) / torch.sum(mask, dim=1, keepdim=True)
+        feats = torch.sum(feats * mask.unsqueeze(2), dim=1)
         feats = self.mlp(feats).view(x.shape[0], self.idx[1] - self.idx[0], 6)
         feats = nn.functional.pad(feats, (0, 0, self.idx[0], 29 - self.idx[1], 0, 0), 'constant', 0)
+        
         return feats
 
 def ar_net_init(hidden_dim=128, gnn_size=2):
@@ -71,6 +80,7 @@ class CouplingBlockFlow(Bijection):
         for idx in range(0, max_nodes, partition_size):
             ar_net = ar_net_init((idx, min(idx + partition_size, max_nodes)))
             mask = mask_init([i for i in range(idx, min(idx + partition_size, max_nodes))], max_nodes)
+            
             tr = MaskedCouplingFlow(ar_net, mask=mask, last_dimension=last_dimension, split_dim=-1)
             self.transforms.append(tr)
 
