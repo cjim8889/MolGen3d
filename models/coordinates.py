@@ -2,28 +2,62 @@ from torch import nn
 import torch
 from survae.transforms.bijections import ConditionalBijection, Bijection
 
+from .actnorm import ActNorm
 from .block import ar_net_init, CouplingBlockFlow
 
 class CoorFlow(nn.Module):
     def __init__(self, 
-        hidden_dim=64, 
-        gnn_size=1,
-        block_size=6,
-        max_nodes=29) -> None:
+            hidden_dim=64, 
+            gnn_size=1,
+            block_size=6,
+            max_nodes=29,
+            last_dimension=3,
+            act_norm=False
+        ) -> None:
 
         super().__init__()
 
-        self.transforms = nn.ModuleList([CouplingBlockFlow(last_dimension=3, max_nodes=max_nodes, ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size)) for _ in range(block_size)])
-
-        for idx in range(1):
-            tr = CouplingBlockFlow(
-                last_dimension=3,
+        self.transforms = nn.ModuleList([
+            CouplingBlockFlow(
+                last_dimension=last_dimension, 
+                max_nodes=max_nodes, 
                 ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size),
-                max_nodes=max_nodes,
-                partition_size=1
+                partition_size=2
+            ) for _ in range(block_size)
+        ])
+
+        for idx in range(block_size):
+            self.transforms.append(
+                CouplingBlockFlow(
+                    last_dimension=last_dimension, 
+                    max_nodes=max_nodes, 
+                    ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size),
+                    partition_size=2
+                )
             )
 
-            self.transforms.append(tr)
+            if act_norm:
+                self.transforms.append(
+                    ActNorm(
+                        last_dimension
+                    )
+                )
+
+        tr = CouplingBlockFlow(
+            last_dimension=3,
+            ar_net_init=ar_net_init(hidden_dim=hidden_dim, gnn_size=gnn_size),
+            max_nodes=max_nodes,
+            partition_size=1
+        )
+
+        self.transforms.append(tr)
+
+        if act_norm:
+            self.transforms.append(
+                ActNorm(
+                    last_dimension
+                )
+            )
 
     def forward(self, x, context=None, mask=None, logs=None):
         log_prob = torch.zeros(x.shape[0], device=x.device)

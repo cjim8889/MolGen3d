@@ -61,7 +61,12 @@ class CoorExp:
         self.total_logged = 0
 
     def train(self):
-        self.network(torch.zeros(1, 29, 3, device=device), mask=torch.ones(1, 29, device=device, dtype=torch.bool))
+        batch_data = next(iter(self.train_loader))
+
+        pos = batch_data.pos.to(device)
+        mask = batch_data.mask.to(device)
+
+        self.network(pos, mask=mask)
         print(f"Model Parameters: {sum([p.numel() for p in self.network.parameters()])}")
 
         scaler = GradScaler()
@@ -70,6 +75,7 @@ class CoorExp:
             for epoch in range(self.config['epochs']):
                 loss_step = 0
                 loss_ep_train = 0
+                loss_step_count = 0
                 self.network.train()
 
                 for idx, batch_data in enumerate(self.train_loader):
@@ -81,7 +87,6 @@ class CoorExp:
                     
                     with autocast(enabled=self.config['autocast']):
                         z, log_det = self.network(input, mask=mask)
-
                         log_prob = None
 
 
@@ -110,6 +115,7 @@ class CoorExp:
 
                     loss_step += loss.detach()
                     loss_ep_train += loss.detach()
+                    loss_step_count += 1
 
                     if self.config['autocast']:
                         scaler.scale(loss).backward()
@@ -124,11 +130,13 @@ class CoorExp:
         
 
                     step += 1
-                    if idx % 10 == 0:
+
+                    if loss_step_count % 10 == 0:
                         ll = (loss_step / 10.).item()
                         wandb.log({"epoch": epoch, "NLL": ll}, step=step)
-
+                        print(ll)
                         loss_step = 0
+                        loss_step_count = 0
 
                 if self.scheduler is not None:
                     self.scheduler.step()
