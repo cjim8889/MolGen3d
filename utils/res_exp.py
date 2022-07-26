@@ -76,7 +76,6 @@ class ResCoorExp:
                     nn.utils.clip_grad_norm_(self.network.parameters(), 1)
                     self.optimiser.step()
 
-                    print(loss.item())
                     step += 1
                     if idx % 10 == 0:
                         ll = (loss_step / 10.).item()
