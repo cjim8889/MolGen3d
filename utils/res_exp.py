@@ -67,8 +67,8 @@ class ResCoorExp:
                             self.total_logged += 1
 
 
-                    loss_step += loss
-                    loss_ep_train += loss
+                    loss_step += loss.detach()
+                    loss_ep_train += loss.detach()
 
 
                     loss.backward()
