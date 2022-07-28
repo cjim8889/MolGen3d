@@ -23,7 +23,7 @@ if __name__ == "__main__":
     )
 
     net.load_state_dict(
-        torch.load("outputs/model_checkpoint_3pchowk4_95.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_3pchowk4_200.pt", map_location="cpu")['model_state_dict']
     )
 
     print("Loading model...")
