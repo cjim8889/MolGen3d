@@ -10,6 +10,7 @@ net = AtomFlow(
     encoder_size=2,
     block_size=2,
     context_dim=16,
+    stochastic_permute=True
 )
 
 
@@ -18,9 +19,12 @@ mask[:, -2:] = False
 
 x = torch.randint(0, 5, (1, 29))
 pos = torch.randn(1, 29, 3)
-print(x)
+
+x.masked_fill_(~mask, 0)
+pos.masked_fill_(~mask.unsqueeze(2), 0.)
+
+print(pos)
 z, _ = net.forward(x, pos, mask=mask)
 
 x_re, _ = net.inverse(z, pos, mask=mask)
-print(x_re)
-print(z)
+print(pos)
