@@ -3,6 +3,7 @@ from survae.transforms.bijections import Bijection
 from .conditionals import ConditionalBlockFlow, ar_net_init, MaskedConditionalNormal, MaskedConditionalInverseFlow
 from .block import CouplingBlockFlow
 from .block import ar_net_init as ar_net_init_block
+from .stochastic import NodeWiseStochasticPermutation
 import torch
 from torch import nn
 
@@ -36,7 +37,9 @@ class AtomFlow(Bijection):
         context_dim=16,
         no_constraint=False,
         euclidean_dim=3,
-        max_nodes=29) -> None:
+        max_nodes=29,
+        stochastic_permute=True
+    ) -> None:
         super().__init__()
 
         self.num_classes = num_classes
@@ -77,7 +80,12 @@ class AtomFlow(Bijection):
 
         surjection = ArgmaxSurjection(inverse, num_classes=num_classes)
 
-        self.transforms = nn.ModuleList([surjection])
+        self.transforms = nn.ModuleList()
+
+        if stochastic_permute:
+            self.transforms.append(NodeWiseStochasticPermutation())
+
+        self.transforms.append(surjection)
 
 
         self.transforms += [
@@ -97,7 +105,7 @@ class AtomFlow(Bijection):
         for transform in self.transforms:
             if isinstance(transform, ArgmaxSurjection):
                 x, ldj = transform.forward(x, mask=mask)
-            elif isinstance(transform, Bijection):
+            elif isinstance(transform, Bijection) or isinstance(transform, NodeWiseStochasticPermutation):
                 x, ldj = transform(x, pos, mask=mask, logs=logs)
 
             log_prob += ldj
@@ -110,7 +118,7 @@ class AtomFlow(Bijection):
         for idx in range(len(self.transforms) - 1, -1, -1):
             if isinstance(self.transforms[idx], ArgmaxSurjection):
                 z, ldj = self.transforms[idx].inverse(z, mask=mask)
-            elif isinstance(self.transforms[idx], Bijection):
+            elif isinstance(self.transforms[idx], Bijection) or isinstance(self.transforms[idx], NodeWiseStochasticPermutation):
                 z, ldj = self.transforms[idx].inverse(z, pos, mask=mask)
 
             log_prob += ldj

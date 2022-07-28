@@ -13,6 +13,7 @@ parser.add_argument("--block_size", help="Block length t parameter", type=int, d
 parser.add_argument("--gnn_size", help="Gnn size", type=int, default=2)
 parser.add_argument("--base", help="Base distribution", type=str, default="standard")
 parser.add_argument("--num_layers", help="Number of layers in transformer", type=int, default=6)
+parser.add_argument("--permute", help="Stochastic permute", type=int, default=1)
 
 parser.add_argument("--optimiser", help="Optimiser", type=str, default="Adam")
 parser.add_argument("--lr", help="Learning rate", type=float, default=1e-03)
@@ -88,10 +89,12 @@ if __name__ == "__main__":
             upload_interval=args.upload_interval,
             hidden_dim=args.hidden_dim,
             block_size=args.block_size,
+            gnn_size=args.gnn_size,
             autocast=args.autocast != 0,
             loadfrom=args.loadfrom,
             no_opt=args.no_opt == 0,
-            encoder_size=args.encoder_size
+            encoder_size=args.encoder_size,
+            permute=args.permute == 1
         )
 
         exp = VertExp(config=config)

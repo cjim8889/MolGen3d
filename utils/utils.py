@@ -22,7 +22,9 @@ def create_model(config):
             hidden_dim=config['hidden_dim'], 
             block_size=config['block_size'], 
             encoder_size=config['encoder_size'],
+            gnn_size=config['gnn_size'],
             num_classes=5,
+            stochastic_permute=config['permute'],
         )
         model = model.to(device)
     elif config['flow'] == "ResCoorFlow":
