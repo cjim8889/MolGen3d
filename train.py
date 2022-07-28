@@ -1,5 +1,5 @@
 import argparse
-from utils import CoorExp, VertExp, TwoStageCoorExp
+from utils import CoorExp, VertExp, TwoStageCoorExp, ResCoorExp, TransCoorExp
 import torch
 from torch import nn
 
@@ -12,6 +12,7 @@ parser.add_argument("--hidden_dim", help="Hidden dimension", type=int, default=6
 parser.add_argument("--block_size", help="Block length t parameter", type=int, default=12)
 parser.add_argument("--gnn_size", help="Gnn size", type=int, default=2)
 parser.add_argument("--base", help="Base distribution", type=str, default="standard")
+parser.add_argument("--num_layers", help="Number of layers in transformer", type=int, default=6)
 
 parser.add_argument("--optimiser", help="Optimiser", type=str, default="Adam")
 parser.add_argument("--lr", help="Learning rate", type=float, default=1e-03)
@@ -121,5 +122,53 @@ if __name__ == "__main__":
         )
 
         exp = TwoStageCoorExp(config=config)
+    if args.type  == "res":
+        config = dict(
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            optimiser=args.optimiser,
+            learning_rate=args.lr,
+            weight_decay=args.weight_decay,
+            scheduler=args.scheduler,
+            scheduler_gamma=args.scheduler_gamma,
+            scheduler_step=args.scheduler_step,
+            dataset="MQM9",
+            architecture="Flow",
+            weight_init=weight_init,
+            upload=args.upload,
+            upload_interval=args.upload_interval,
+            hidden_dim=args.hidden_dim,
+            block_size=args.block_size,
+            base=args.base,
+            loadfrom=args.loadfrom,
+            autocast=args.autocast != 0,
+            no_opt=args.no_opt == 0
+        )
 
+        exp = ResCoorExp(config=config)
+
+    if args.type  == "trans":
+        config = dict(
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            optimiser=args.optimiser,
+            learning_rate=args.lr,
+            weight_decay=args.weight_decay,
+            scheduler=args.scheduler,
+            scheduler_gamma=args.scheduler_gamma,
+            scheduler_step=args.scheduler_step,
+            dataset="MQM9",
+            architecture="Flow",
+            upload=args.upload,
+            upload_interval=args.upload_interval,
+            hidden_dim=args.hidden_dim,
+            block_size=args.block_size,
+            base=args.base,
+            loadfrom=args.loadfrom,
+            num_layers_transformer=args.num_layers,
+            autocast=args.autocast != 0,
+            no_opt=args.no_opt == 0
+        )
+
+        exp = TransCoorExp(config=config)
     exp.train()

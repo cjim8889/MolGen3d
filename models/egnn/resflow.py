@@ -1,35 +1,39 @@
-from .egnn import EGNN
 from .residual_flows.layers import iResBlock
 import torch
 from torch import nn
 from survae.transforms.bijections import ConditionalBijection, Bijection
+from torch.nn.utils.parametrizations import spectral_norm
+from einops.layers.torch import Rearrange
 
-
-
-class EGNN_(nn.Module):
-    def __init__(self, dim, m_dim=64, num_nearest_neighbors=0, gnn_size=2) -> None:
+class LipSwish_(nn.Module):
+    def __init__(self) -> None:
         super().__init__()
 
-        self.egnn = nn.ModuleList(
-            [
-                EGNN(
-                    dim, 
-                    m_dim=m_dim, 
-                    num_nearest_neighbors=num_nearest_neighbors,
-                    soft_edges=False,
-                    update_coors=False,
-                    norm_feats=False
-                ) for _ in range(gnn_size)
-            ]
+        self.swish = nn.SiLU(True)
+
+    def forward(self, x):
+        return self.swish(x).div_(1.1)
+
+class Dynamics(nn.Module):
+    def __init__(self, hidden_dim=64) -> None:
+        super().__init__()
+
+        # B X 29 X dim
+
+        self.net = nn.Sequential(
+            Rearrange(" b c d -> b () c d"),
+            spectral_norm(nn.Conv2d(1, hidden_dim, kernel_size=3, stride=1, padding=1)),
+            LipSwish_(),
+            spectral_norm(nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, stride=1, padding=1)),
+            LipSwish_(),
+            spectral_norm(nn.Conv2d(hidden_dim, 1, kernel_size=3, stride=1, padding=1)),
+            Rearrange(" b () c d -> b c d"),
         )
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        feats = x
+        z = self.net(x)
 
-        for egnn in self.egnn:
-            feats, _ = egnn(feats, feats)
-
-        return feats
+        return z
 
 class Residual(Bijection):
     """
@@ -57,22 +61,29 @@ class Residual(Bijection):
 
     def forward(self, z, mask=None, logs=None):
         if self.reverse:
-            z, log_det = self.iresblock.inverse(z, 0)
+            z, log_det = self.iresblock.inverse(z, 0, mask)
         else:
-            z, log_det = self.iresblock.forward(z, 0)
+            z, log_det = self.iresblock.forward(z, 0, mask)
+        
+        if mask is not None:
+            z = z * mask.unsqueeze(2)
+
         return z, -log_det.view(-1)
 
     def inverse(self, z, mask=None, logs=None):
         if self.reverse:
-            z, log_det = self.iresblock.forward(z, 0)
+            z, log_det = self.iresblock.forward(z, 0, mask)
         else:
-            z, log_det = self.iresblock.inverse(z, 0)
+            z, log_det = self.iresblock.inverse(z, 0, mask)
+        
+        if mask is not None:
+            z = z * mask.unsqueeze(2)
+
         return z, -log_det.view(-1)
 
 class ResCoorFlow(nn.Module):
     def __init__(self, 
         hidden_dim=64, 
-        gnn_size=1,
         block_size=6,
         max_nodes=29) -> None:
 
@@ -80,15 +91,12 @@ class ResCoorFlow(nn.Module):
 
         self.transforms = nn.ModuleList([])
 
-        for idx in range(block_size):
-            net = EGNN_(
-                3, m_dim=hidden_dim, gnn_size=gnn_size
-            )
+        for _ in range(block_size):
+            net = Dynamics(hidden_dim)
 
             block = Residual(
                 net,
                 reduce_memory=True,
-                reverse=False
             )
 
             self.transforms.append(block)
