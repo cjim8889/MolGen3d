@@ -70,6 +70,6 @@ class ActNorm(Bijection):
         else:
             return x, -d_ldj
 
-    def reverse(self, x, mask=None, context=None, logs=None):
+    def inverse(self, x, mask=None, logs=None):
         assert self.initialized
-        return self(x, mask=mask, context=context, reverse=True)
+        return self(x, mask=mask, reverse=True)
