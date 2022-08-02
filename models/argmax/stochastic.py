@@ -10,6 +10,7 @@ class NodeWiseStochasticPermutation(Surjection):
     def permute_with_mask_(self, x, pos, mask=None):
         size = mask.sum(dim=(1))
 
+        print(size.shape)
         for idx in range(x.shape[0]):
             perm = torch.randperm(size[idx], device=x.device)
 

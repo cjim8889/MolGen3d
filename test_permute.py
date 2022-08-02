@@ -18,6 +18,6 @@ x.masked_fill_(~mask.squeeze(2), 0.)
 net = NodeWiseStochasticPermutation()
 
 
-print(pos)
-z, _ = net(x, pos, mask)
-print(pos)
+print(x, pos)
+z, _ = net(x, pos, mask.squeeze(2))
+print(x, pos)
