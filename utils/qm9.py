@@ -135,8 +135,10 @@ class ModifiedQM9(InMemoryDataset):
 
     def __init__(self, root: str, transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None,
-                 pre_filter: Optional[Callable] = None):
+                 pre_filter: Optional[Callable] = None,
+                 size_constraint: int = None):
         super().__init__(root, transform, pre_transform, pre_filter)
+
         self.data, self.slices = torch.load(self.processed_paths[0])
 
     def mean(self, target: int) -> float:
@@ -235,6 +237,7 @@ class ModifiedQM9(InMemoryDataset):
 
             smiles = Chem.MolToSmiles(mol)
             N = mol.GetNumAtoms()
+
             formal_charge = Chem.GetFormalCharge(mol)
 
             pos = suppl.GetItemText(i).split('\n')[4:4 + N]
@@ -289,7 +292,7 @@ class ModifiedQM9(InMemoryDataset):
             name = mol.GetProp('_Name')
 
             data = Data(x=x, z=z, pos=pos, edge_index=edge_index,
-                        edge_attr=edge_attr, y=y, name=name, idx=i, smiles=smiles, formal_charge=formal_charge)
+                        edge_attr=edge_attr, y=y, name=name, idx=i, N=N, smiles=smiles, formal_charge=formal_charge)
 
             if self.pre_filter is not None and not self.pre_filter(data):
                 continue
