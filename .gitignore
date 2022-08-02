@@ -10,6 +10,8 @@ wandb/
 *qm9-datasets*/
 # C extensions
 *.so
+*.sdf
+*.csv
 
 *.out
 nul
