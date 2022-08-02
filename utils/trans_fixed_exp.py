@@ -35,6 +35,7 @@ def center_gravity_zero_gaussian_log_likelihood_with_constraint(x, size_constrai
 
     # The relevant hyperplane is (N-1) * D dimensional.
     N = torch.full((x.shape[0]), size_constraint, device=device)
+
     degrees_of_freedom = (N-1) * D
 
     # Normalizing constant and logpx are computed:

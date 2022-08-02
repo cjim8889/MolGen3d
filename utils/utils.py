@@ -9,11 +9,36 @@ def create_model(config):
     if config['flow'] == "CoorFlow" or config['flow'] == "TwoStageCoorFlow":
         model = config['model'](hidden_dim=config['hidden_dim'], gnn_size=config['gnn_size'], block_size=config['block_size'])
         model = model.to(device)
+    elif config['flow'] == "TransformerCoorFlow":
+        model = config['model'](
+            hidden_dim=config['hidden_dim'], 
+            block_size=config['block_size'], 
+            max_nodes=29,
+            num_layers_transformer=config['num_layers_transformer'],
+        )
+        model = model.to(device)
+    elif config['flow'] == "TransformerCoorFlowFixed":
+        model = config['model'](
+            hidden_dim=config['hidden_dim'], 
+            block_size=config['block_size'], 
+            max_nodes=config['size_constraint'],
+            conv1x1=config['conv1x1'],
+            partition_size=config['partition_size'],
+            num_layers_transformer=config['num_layers_transformer'],
+        )
+        model = model.to(device)
     elif config['flow'] == "AtomFlow":
-        model = config['model'](hidden_dim=config['hidden_dim'], block_size=config['block_size'], encoder_size=config['encoder_size'])
+        model = config['model'](
+            hidden_dim=config['hidden_dim'], 
+            block_size=config['block_size'], 
+            encoder_size=config['encoder_size'],
+            gnn_size=config['gnn_size'],
+            num_classes=5,
+            stochastic_permute=config['permute'],
+        )
         model = model.to(device)
     elif config['flow'] == "ResCoorFlow":
-        model = config['model'](hidden_dim=config['hidden_dim'], block_size=config['block_size'], gnn_size=config['gnn_size'])
+        model = config['model'](hidden_dim=config['hidden_dim'], block_size=config['block_size'])
         model = model.to(device)
     if "weight_init" in config:
         model.apply(config["weight_init"])

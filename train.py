@@ -1,5 +1,5 @@
 import argparse
-from utils import CoorExp, VertExp, TwoStageCoorExp
+from utils import CoorExp, VertExp, TwoStageCoorExp, ResCoorExp, TransCoorExp, TransCoorFixedExp
 import torch
 from torch import nn
 
@@ -11,7 +11,13 @@ parser.add_argument("--batch_size", help="Batch size", type=int, default=128)
 parser.add_argument("--hidden_dim", help="Hidden dimension", type=int, default=64)
 parser.add_argument("--block_size", help="Block length t parameter", type=int, default=12)
 parser.add_argument("--gnn_size", help="Gnn size", type=int, default=2)
-parser.add_argument("--base", help="Base distribution", type=str, default="standard")
+parser.add_argument("--base", help="Base distribution", type=str, default="invariant")
+parser.add_argument("--num_layers", help="Number of layers in transformer", type=int, default=4)
+parser.add_argument("--permute", help="Stochastic permute", type=int, default=1)
+
+parser.add_argument("--conv1x1", help="Conv1x1", type=int, default=1)
+parser.add_argument("--partition_size", help="Partition size", type=int, default=9)
+parser.add_argument("--size_constraint", help="Size constraint", type=int, default=18)
 
 parser.add_argument("--optimiser", help="Optimiser", type=str, default="Adam")
 parser.add_argument("--lr", help="Learning rate", type=float, default=1e-03)
@@ -87,10 +93,12 @@ if __name__ == "__main__":
             upload_interval=args.upload_interval,
             hidden_dim=args.hidden_dim,
             block_size=args.block_size,
+            gnn_size=args.gnn_size,
             autocast=args.autocast != 0,
             loadfrom=args.loadfrom,
             no_opt=args.no_opt == 0,
-            encoder_size=args.encoder_size
+            encoder_size=args.encoder_size,
+            permute=args.permute == 1
         )
 
         exp = VertExp(config=config)
@@ -121,5 +129,80 @@ if __name__ == "__main__":
         )
 
         exp = TwoStageCoorExp(config=config)
+    if args.type  == "res":
+        config = dict(
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            optimiser=args.optimiser,
+            learning_rate=args.lr,
+            weight_decay=args.weight_decay,
+            scheduler=args.scheduler,
+            scheduler_gamma=args.scheduler_gamma,
+            scheduler_step=args.scheduler_step,
+            dataset="MQM9",
+            architecture="Flow",
+            weight_init=weight_init,
+            upload=args.upload,
+            upload_interval=args.upload_interval,
+            hidden_dim=args.hidden_dim,
+            block_size=args.block_size,
+            base=args.base,
+            loadfrom=args.loadfrom,
+            autocast=args.autocast != 0,
+            no_opt=args.no_opt == 0
+        )
 
+        exp = ResCoorExp(config=config)
+
+    if args.type  == "trans":
+        config = dict(
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            optimiser=args.optimiser,
+            learning_rate=args.lr,
+            weight_decay=args.weight_decay,
+            scheduler=args.scheduler,
+            scheduler_gamma=args.scheduler_gamma,
+            scheduler_step=args.scheduler_step,
+            dataset="MQM9",
+            architecture="Flow",
+            upload=args.upload,
+            upload_interval=args.upload_interval,
+            hidden_dim=args.hidden_dim,
+            block_size=args.block_size,
+            base=args.base,
+            loadfrom=args.loadfrom,
+            num_layers_transformer=args.num_layers,
+            autocast=args.autocast != 0,
+            no_opt=args.no_opt == 0
+        )
+
+        exp = TransCoorExp(config=config)
+    if args.type  == "trans_fixed":
+        config = dict(
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            optimiser=args.optimiser,
+            learning_rate=args.lr,
+            weight_decay=args.weight_decay,
+            scheduler=args.scheduler,
+            scheduler_gamma=args.scheduler_gamma,
+            scheduler_step=args.scheduler_step,
+            dataset="MQM9",
+            architecture="Flow",
+            upload=args.upload,
+            upload_interval=args.upload_interval,
+            hidden_dim=args.hidden_dim,
+            block_size=args.block_size,
+            base=args.base,
+            loadfrom=args.loadfrom,
+            num_layers_transformer=args.num_layers,
+            autocast=args.autocast != 0,
+            no_opt=args.no_opt == 0,
+            conv1x1=args.conv1x1 == 1,
+            partition_size=args.partition_size,
+            size_constraint=args.size_constraint,
+        )
+
+        exp = TransCoorFixedExp(config=config)
     exp.train()

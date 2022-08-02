@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 from rdkit import Chem
 from rdkit.Chem import Draw
 from models.argmax.atom import AtomFlow
-from models import CoorFlow
+from models.pos.flow import TransformerCoorFlow
 import torch
 import numpy as np
+from einops import rearrange
 from xyz2mol.xyz2mol import xyz2mol
 
 atom_decoder = ['N/A', 'H', 'C', 'N', 'O', 'F']
@@ -44,12 +45,19 @@ if __name__ == "__main__":
     # mask = batch.mask
     batch_size = 100
 
-    coor_net = CoorFlow(hidden_dim=64, gnn_size=1, block_size=4)
+    coor_net = TransformerCoorFlow(
+        hidden_dim=32,
+        num_layers_transformer=4,
+        block_size=6
+    )
     
     coor_net.load_state_dict(
-        torch.load("outputs/model_checkpoint_1eac4ec9_590.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_2yd53373_30.pt", map_location="cpu")['model_state_dict']
     )
 
+    print("Loaded TransformerCoorFlow model...")
+
+    print("Sampling...")
     z = base.sample(sample_shape=(batch_size, 29, 3))
     mask = torch.ones(batch_size, 29).to(torch.bool)
     mask_size = torch.randint(3, 29, (batch_size,))
@@ -57,33 +65,44 @@ if __name__ == "__main__":
     for idx in range(batch_size):
         mask[idx, mask_size[idx]:] = False
 
-
-    
     z = z * mask.unsqueeze(2)
     z = remove_mean_with_mask(z, node_mask=mask)
 
     with torch.no_grad():
-        pos, _ = coor_net.inverse(z, mask=mask)
+        pos, _ = coor_net.inverse(
+            rearrange(z, "b n d -> b d n"),
+            mask=mask.unsqueeze(1)
+        )
 
+    print("Sampled Positions...")
+    print(pos.shape)
 
     net = AtomFlow(
         hidden_dim=32,
         block_size=6,
         encoder_size=4,
-        gnn_size=1
+        gnn_size=2,
+        num_classes=5,
+        stochastic_permute=False
     )
 
     net.load_state_dict(
-        torch.load("outputs/model_checkpoint_3pchowk4_10.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_3pchowk4_200.pt", map_location="cpu")['model_state_dict']
     )
+
+    print("Loaded AtomFlow model...")
+
+
+    pos = rearrange(pos, "b d n -> b n d") * mask.squeeze(1).unsqueeze(2)
 
     with torch.no_grad():
         atoms_types, _ =net.inverse(
             base.sample(sample_shape=(pos.shape[0], 29, 5)),
             pos,
-            mask = mask
+            mask = mask.squeeze(1)
         )
 
+    print("Sampled Atom Types...")
     valid = 0
     atoms_types_n = atoms_types.long().numpy()
     pos_n = pos.numpy()
@@ -97,13 +116,11 @@ if __name__ == "__main__":
 
     for idx in range(atoms_types.shape[0]):
         size = mask[idx].to(torch.long).sum()
-        atom_decoder_int = [0, 1, 6, 7, 8, 9]
+        atom_decoder_int = [1, 6, 7, 8, 9]
         atom_ty =[atom_decoder_int[i] for i in atoms_types_n[idx, :size]]
 
         pos_t = pos_n[idx, :size].tolist()
 
-        if 0 in atom_ty or len(atom_ty) == 0:
-            continue
 
         try:
             # print(pos_t, atom_ty)
@@ -129,12 +146,12 @@ if __name__ == "__main__":
         except:
             invalid_idx.append(idx)
 
-    print(invalid_idx)
-    print(pos[invalid_idx].shape, pos[invalid_idx])
+    # print(invalid_idx)
+    # print(pos[invalid_idx].shape, pos[invalid_idx])
     
-    plot = Draw.MolsToGridImage(valid_mols, molsPerRow=4, subImgSize=(500, 500), legends=valid_smiles)
-    number = np.random.randint(0, 10000)
-    plot.save(f"local_interpolcation_{number}.png")
+    # plot = Draw.MolsToGridImage(valid_mols, molsPerRow=4, subImgSize=(500, 500), legends=valid_smiles)
+    # number = np.random.randint(0, 10000)
+    # plot.save(f"local_interpolcation_{number}.png")
 
     pprint(valid_smiles)
     print(valid * 1.0 / batch_size)

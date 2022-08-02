@@ -1,5 +1,26 @@
 import torch
 
+def create_mask_node_wise(idx, max_size, invert=False):
+    mask = torch.ones(max_size, dtype=torch.bool)
+
+    mask[idx] = False
+    mask = mask.view(1, 1, max_size)
+
+    if invert:
+        mask = ~mask
+
+    return mask
+
+def create_mask_dim_wise(idx, max_dim, invert=False):
+    mask = torch.ones(max_dim, dtype=torch.bool)
+
+    mask[idx] = False
+    mask = mask.view(1, max_dim, 1)
+
+    if invert:
+        mask = ~mask
+
+    return mask
 
 def create_mask_equivariant(idx, max_size, invert=False):
 

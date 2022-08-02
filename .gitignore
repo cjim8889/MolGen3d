@@ -7,10 +7,12 @@ __pycache__/
 .idea/
 
 wandb/
-*qm9-datasets/
+*qm9-datasets*/
 # C extensions
 *.so
 
+*.out
+nul
 *.pt
 *.png
 

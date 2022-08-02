@@ -56,7 +56,7 @@ class iResBlock(nn.Module):
             y = x + self.nnet(x)
             return y
         else:
-            g, logdetgrad = self._logdetgrad(x)
+            g, logdetgrad = self._logdetgrad(x, mask=mask)
             return x + g, logpx - logdetgrad
 
     def inverse(self, y, logpy=None, mask=None):
@@ -64,9 +64,9 @@ class iResBlock(nn.Module):
         if logpy is None:
             return x
         else:
-            return x, logpy + self._logdetgrad(x)[1]
+            return x, logpy + self._logdetgrad(x, mask=mask)[1]
 
-    def _inverse_fixed_point(self, y, atol=1e-5, rtol=1e-5, mask=None):
+    def _inverse_fixed_point(self, y, atol=1e-5, rtol=1e-5):
         x, x_prev = y - self.nnet(y), y
         i = 0
         tol = atol + y.abs() * rtol
@@ -82,17 +82,6 @@ class iResBlock(nn.Module):
         """Returns g(x) and logdet|d(x+g(x))/dx|."""
 
         with torch.enable_grad():
-            if (self.brute_force or not self.training) and (x.ndimension() == 2 and x.shape[1] == 2):
-                ###########################################
-                # Brute-force compute Jacobian determinant.
-                ###########################################
-                x = x.requires_grad_(True)
-                g = self.nnet(x, mask=mask)
-                # Brute-force logdet only available for 2D.
-                jac = batch_jacobian(g, x)
-                batch_dets = (jac[:, 0, 0] + 1) * (jac[:, 1, 1] + 1) - jac[:, 0, 1] * jac[:, 1, 0]
-                return g, torch.log(torch.abs(batch_dets)).view(-1, 1)
-
             if self.n_dist == 'geometric':
                 geom_p = torch.sigmoid(self.geom_p).item()
                 sample_fn = lambda m: geometric_sample(geom_p, m)
@@ -126,6 +115,8 @@ class iResBlock(nn.Module):
                 ####################################
                 # Power series with trace estimator.
                 ####################################
+
+                # What we like to change
                 vareps = torch.randn_like(x)
 
                 # Choose the type of estimator.
@@ -137,8 +128,9 @@ class iResBlock(nn.Module):
                 # Do backprop-in-forward to save memory.
                 if self.training and self.grad_in_forward:
                     g, logdetgrad = mem_eff_wrapper(
-                        estimator_fn, self.nnet, x, n_power_series, vareps, coeff_fn, self.training
+                        estimator_fn, self.nnet, x, n_power_series, vareps, coeff_fn, self.training, mask
                     )
+
                 else:
                     x = x.requires_grad_(True)
                     g = self.nnet(x)
@@ -162,7 +154,6 @@ class iResBlock(nn.Module):
                 self.last_firmom.copy_(torch.mean(estimator).to(self.last_firmom))
                 self.last_secmom.copy_(torch.mean(estimator**2).to(self.last_secmom))
 
-            # print(g.shape, logdetgrad.shape)
             return g, logdetgrad.view(-1, 1)
 
     def extra_repr(self):
@@ -188,14 +179,15 @@ def batch_trace(M):
 class MemoryEfficientLogDetEstimator(torch.autograd.Function):
 
     @staticmethod
-    def forward(ctx, estimator_fn, gnet, x, n_power_series, vareps, coeff_fn, training, *g_params):
+    def forward(ctx, estimator_fn, gnet, x, n_power_series, vareps, coeff_fn, training, mask, *g_params):
         ctx.training = training
         with torch.enable_grad():
             x = x.detach().requires_grad_(True)
             g = gnet(x)
             ctx.g = g
             ctx.x = x
-            logdetgrad = estimator_fn(g, x, n_power_series, vareps, coeff_fn, training)
+            logdetgrad = estimator_fn(g, x, n_power_series, vareps, coeff_fn, training, mask)
+
             if training:
                 grad_x, *grad_params = torch.autograd.grad(
                     logdetgrad.sum(), (x,) + g_params, retain_graph=True, allow_unused=True
@@ -233,7 +225,7 @@ class MemoryEfficientLogDetEstimator(torch.autograd.Function):
             grad_x.add_(dg_x)
             grad_params = tuple([dg.add_(djac) if djac is not None else dg for dg, djac in zip(dg_params, grad_params)])
 
-        return (None, None, grad_x, None, None, None, None) + grad_params
+        return (None, None, grad_x, None, None, None, None, None) + grad_params
 
 
 def basic_logdet_estimator(g, x, n_power_series, vareps, coeff_fn, training):
@@ -247,21 +239,25 @@ def basic_logdet_estimator(g, x, n_power_series, vareps, coeff_fn, training):
     return logdetgrad
 
 
-def neumann_logdet_estimator(g, x, n_power_series, vareps, coeff_fn, training):
+def neumann_logdet_estimator(g, x, n_power_series, vareps, coeff_fn, training, mask):
     vjp = vareps
     neumann_vjp = vareps
     with torch.no_grad():
         for k in range(1, n_power_series + 1):
             vjp = torch.autograd.grad(g, x, vjp, retain_graph=True)[0]
             neumann_vjp = neumann_vjp + (-1)**k * coeff_fn(k) * vjp
+
     vjp_jac = torch.autograd.grad(g, x, neumann_vjp, create_graph=training)[0]
 
-    logdetgrad = torch.sum(vjp_jac.view(x.shape[0], -1) * vareps.view(x.shape[0], -1), 1)
+    v = vjp_jac.view(x.shape[0], -1) * vareps.view(x.shape[0], -1)
+    v = v.view(x.shape[0], x.shape[1], -1) * mask.unsqueeze(2)
+
+    logdetgrad = torch.sum(v.view(x.shape[0], -1), 1)
 
     return logdetgrad
 
 
-def mem_eff_wrapper(estimator_fn, gnet, x, n_power_series, vareps, coeff_fn, training):
+def mem_eff_wrapper(estimator_fn, gnet, x, n_power_series, vareps, coeff_fn, training, mask):
 
     # We need this in order to access the variables inside this module,
     # since we have no other way of getting variables along the execution path.
@@ -269,7 +265,7 @@ def mem_eff_wrapper(estimator_fn, gnet, x, n_power_series, vareps, coeff_fn, tra
         raise ValueError('g is required to be an instance of nn.Module.')
 
     return MemoryEfficientLogDetEstimator.apply(
-        estimator_fn, gnet, x, n_power_series, vareps, coeff_fn, training, *list(gnet.parameters())
+        estimator_fn, gnet, x, n_power_series, vareps, coeff_fn, training, mask, *list(gnet.parameters())
     )
 
 
