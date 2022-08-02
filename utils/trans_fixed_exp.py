@@ -18,7 +18,7 @@ def remove_mean_with_constraint(x, size_constraint):
     # assert (x * (1 - node_mask)).abs().sum().item() < 1e-8
     # node_mask = node_mask.unsqueeze(2)s
     # N = node_mask.sum(1, keepdims=True)
-    N = torch.full_like((x.shape[0], 1), size_constraint)
+    N = torch.full((x.shape[0], 1), size_constraint)
 
     mean = torch.sum(x, dim=1, keepdim=True) / N
     x = x - mean
