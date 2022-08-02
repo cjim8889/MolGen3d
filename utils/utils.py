@@ -17,6 +17,16 @@ def create_model(config):
             num_layers_transformer=config['num_layers_transformer'],
         )
         model = model.to(device)
+    elif config['flow'] == "TransformerCoorFlowFixed":
+        model = config['model'](
+            hidden_dim=config['hidden_dim'], 
+            block_size=config['block_size'], 
+            max_nodes=config['size_constraint'],
+            conv1x1=config['conv1x1'],
+            partition_size=config['partition_size'],
+            num_layers_transformer=config['num_layers_transformer'],
+        )
+        model = model.to(device)
     elif config['flow'] == "AtomFlow":
         model = config['model'](
             hidden_dim=config['hidden_dim'], 

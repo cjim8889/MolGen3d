@@ -76,13 +76,24 @@ class ToDenseAdjV2(BaseTransform):
             return super().__repr__()
         return f'{self.__class__.__name__}(num_nodes={self.num_nodes})'
 
-def get_datasets(type="mqm9", batch_size=128, shuffle=True, num_workers=4):
+class FilterSize:
+    def __init__(self, size_constraint):
+        self.size_constraint = size_constraint
 
-    if type == "mqm9":
+    def __call__(self, data):
+        return data.N == self.size_constraint
+
+def get_datasets(type="mqm9", batch_size=128, shuffle=True, num_workers=4, size_constraint=None):
+
+    if type == "mqm9" and size_constraint is None:
         # Modified QM9 Dataset where all hydrogen atoms are removed
         # Max_num_nodes: 9
         transform = T.Compose([ToDenseAdjV2(num_nodes=29)])
         dataset = ModifiedQM9(root="./mqm9-datasets", pre_transform=transform)
+    else:
+        transform = T.Compose([ToDenseAdjV2(num_nodes=size_constraint)])
+        dataset = ModifiedQM9(root=f"./mqm9-datasets-{size_constraint}", pre_transform=transform, pre_filter=FilterSize(size_constraint))
+
 
     train_loader = ModifiedDenseDataLoader(dataset[:int(len(dataset) * 0.8)], batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=False)
     test_loader = ModifiedDenseDataLoader(dataset[int(len(dataset) * 0.8):], batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=False)
