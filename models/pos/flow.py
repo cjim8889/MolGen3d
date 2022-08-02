@@ -26,7 +26,7 @@ class TransformerCoorFlow(CouplingBlockFlow):
                         num_layers_transformer=num_layers_transformer,
                         hidden_dim=hidden_dim,
                         max_nodes=max_nodes,
-                        partition_size=partition_size
+                        partition_size=1,
                     )
                 )
             
