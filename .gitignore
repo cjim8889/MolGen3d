@@ -11,6 +11,8 @@ wandb/
 # C extensions
 *.so
 
+logs/
+
 *.out
 nul
 *.pt

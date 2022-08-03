@@ -95,8 +95,8 @@ def get_datasets(type="mqm9", batch_size=128, shuffle=True, num_workers=4, size_
         dataset = ModifiedQM9(root=f"./mqm9-datasets-{size_constraint}", pre_transform=transform, pre_filter=FilterSize(size_constraint))
 
 
-    train_loader = ModifiedDenseDataLoader(dataset[:int(len(dataset) * 0.8)], batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=False)
-    test_loader = ModifiedDenseDataLoader(dataset[int(len(dataset) * 0.8):], batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=False)
+    train_loader = ModifiedDenseDataLoader(dataset[:int(len(dataset) * 0.8)], batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True)
+    test_loader = ModifiedDenseDataLoader(dataset[int(len(dataset) * 0.8):], batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True)
 
     return train_loader, test_loader
 

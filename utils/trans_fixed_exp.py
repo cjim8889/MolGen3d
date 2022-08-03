@@ -124,7 +124,7 @@ class TransCoorFixedExp:
                         scaler.update()
                     else:
                         loss.backward()
-                        nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=1)
+                        nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=2)
                         self.optimiser.step()
         
 
