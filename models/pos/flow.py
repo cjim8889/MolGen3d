@@ -8,7 +8,7 @@ class TransformerCoorFlow(CouplingBlockFlow):
             block_size=6,
             max_nodes=29,
             num_layers_transformer=6,
-            partition_size=9,
+            partition_size=(1, 9),
             n_dim=3,
             dim_wise=True,
             node_wise=True,
@@ -29,7 +29,7 @@ class TransformerCoorFlow(CouplingBlockFlow):
                         num_layers_transformer=num_layers_transformer,
                         hidden_dim=hidden_dim,
                         max_nodes=max_nodes,
-                        partition_size=1,
+                        partition_size=partition_size[0],
                     )
                 )
             
@@ -40,7 +40,14 @@ class TransformerCoorFlow(CouplingBlockFlow):
                         num_layers_transformer=num_layers_transformer,
                         hidden_dim=hidden_dim,
                         max_nodes=max_nodes,
-                        partition_size=partition_size
+                        partition_size=partition_size[1]
+                    )
+                )
+
+            if batch_norm:
+                self.transforms.append(
+                    BatchNormFlow(
+                        num_features=max_nodes,
                     )
                 )
 

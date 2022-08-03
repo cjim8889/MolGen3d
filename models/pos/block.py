@@ -17,7 +17,6 @@ class CouplingBlockFlow(Bijection):
         for transform in self.transforms:
             if isinstance(transform, Bijection):
                 x, ldj = transform(x, mask=mask, logs=logs)
-
             log_prob += ldj
         
         return x, log_prob
@@ -52,6 +51,7 @@ class DimWiseCouplingBlockFlow(CouplingBlockFlow):
                 d_model=hidden_dim,
                 num_layers=num_layers_transformer,
                 dim_feedforward=hidden_dim * 2,
+                # dropout=0
             )
 
             mask = mask_init([i for i in range(idx, min(idx + partition_size, n_dim))], n_dim)
@@ -86,6 +86,7 @@ class NodeWiseCouplingBlockFlow(CouplingBlockFlow):
                 d_model=hidden_dim,
                 num_layers=num_layers_transformer,
                 dim_feedforward=hidden_dim * 2,
+                # dropout=0
             )
 
             mask = mask_init([i for i in range(idx, min(idx + partition_size, max_nodes))], max_nodes)

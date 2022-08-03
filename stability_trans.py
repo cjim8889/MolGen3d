@@ -48,11 +48,15 @@ if __name__ == "__main__":
     coor_net = TransformerCoorFlow(
         hidden_dim=32,
         num_layers_transformer=4,
-        block_size=6
+        block_size=6,
+        conv1x1=False,
+        conv1x1_node_wise=False,
+        batch_norm=False,
+        partition_size=(2,1),
     )
     
     coor_net.load_state_dict(
-        torch.load("outputs/model_checkpoint_2yd53373_30.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_2yd53373_100.pt", map_location="cpu")['model_state_dict']
     )
 
     print("Loaded TransformerCoorFlow model...")
@@ -87,7 +91,7 @@ if __name__ == "__main__":
     )
 
     net.load_state_dict(
-        torch.load("outputs/model_checkpoint_3pchowk4_200.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_3pchowk4_50.pt", map_location="cpu")['model_state_dict']
     )
 
     print("Loaded AtomFlow model...")
