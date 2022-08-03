@@ -1,7 +1,7 @@
 import argparse
 from utils import CoorExp, VertExp, TwoStageCoorExp, ResCoorExp, TransCoorExp, TransCoorFixedExp
 import torch
-from torch import nn
+from torch import batch_norm, nn
 
 parser = argparse.ArgumentParser(description="Molecular Generation MSc Project: 3D")
 parser.add_argument("--type", help="Type of experiments e.g. argmaxadj")
@@ -16,8 +16,10 @@ parser.add_argument("--num_layers", help="Number of layers in transformer", type
 parser.add_argument("--permute", help="Stochastic permute", type=int, default=1)
 
 parser.add_argument("--conv1x1", help="Conv1x1", type=int, default=1)
+parser.add_argument("--conv1x1_node_wise", help="Conv1x1 node wise", type=int, default=0)
 parser.add_argument("--partition_size", help="Partition size", type=int, default=9)
 parser.add_argument("--size_constraint", help="Size constraint", type=int, default=18)
+parser.add_argument("--batch_norm", help="Batch norm", type=int, default=1)
 
 parser.add_argument("--optimiser", help="Optimiser", type=str, default="Adam")
 parser.add_argument("--lr", help="Learning rate", type=float, default=1e-03)
@@ -200,8 +202,10 @@ if __name__ == "__main__":
             autocast=args.autocast != 0,
             no_opt=args.no_opt == 0,
             conv1x1=args.conv1x1 == 1,
+            conv1x1_node_wise=args.conv1x1_node_wise == 1,
             partition_size=args.partition_size,
             size_constraint=args.size_constraint,
+            batch_norm=args.batch_norm == 1,
         )
 
         exp = TransCoorFixedExp(config=config)

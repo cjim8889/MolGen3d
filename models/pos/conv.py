@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from survae.transforms.bijections import Bijection
-
+from einops import rearrange
 
 class Conv1x1(Bijection):
     """
@@ -26,11 +26,12 @@ class Conv1x1(Bijection):
         [1] Glow: Generative Flow with Invertible 1×1 Convolutions,
             Kingma & Dhariwal, 2018, https://arxiv.org/abs/1807.03039
     """
-    def __init__(self, num_channels, orthogonal_init=True, slogdet_cpu=True):
+    def __init__(self, num_channels, orthogonal_init=True, slogdet_cpu=True, node_wise=False):
         super(Conv1x1, self).__init__()
         self.num_channels = num_channels
         self.slogdet_cpu = slogdet_cpu
         self.weight = nn.Parameter(torch.Tensor(num_channels, num_channels))
+        self.node_wise = node_wise
         self.reset_parameters(orthogonal_init)
 
     def reset_parameters(self, orthogonal_init):
@@ -72,12 +73,25 @@ class Conv1x1(Bijection):
 
     def forward(self, x, mask=None, logs=None):
         # Ignore mask for this time
+        if self.node_wise:
+            x = rearrange(x, 'b d c -> b c d')
+
         z = self._conv(self.weight, x)
         ldj = self._logdet(x.shape)
+
+        if self.node_wise:
+            z = rearrange(z, 'b c d -> b d c')
         return z, ldj
 
     def inverse(self, z, mask=None):
         # Ignore mask for this time
         weight_inv = torch.inverse(self.weight)
+        if self.node_wise:
+            z = rearrange(z, 'b d c -> b c d')
+
         x = self._conv(weight_inv, z)
+
+        if self.node_wise:
+            x = rearrange(x, 'b c d -> b d c')
+            
         return x, 0
