@@ -51,6 +51,13 @@ class TransformerCoorFlow(CouplingBlockFlow):
                     )
                 )
 
+            if batch_norm:
+                self.transforms.append(
+                    BatchNormFlow(
+                        num_features=n_dim,
+                    )
+                )
+
             if conv1x1:
                 self.transforms.append(
                     Conv1x1(
