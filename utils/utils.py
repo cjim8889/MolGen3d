@@ -23,7 +23,7 @@ def create_model(config):
             block_size=config['block_size'], 
             max_nodes=config['size_constraint'],
             conv1x1=config['conv1x1'],
-            partition_size=config['partition_size'],
+            partition_size=(1, config['partition_size']),
             num_layers_transformer=config['num_layers_transformer'],
             conv1x1_node_wise=config['conv1x1_node_wise'],
             batch_norm=config['batch_norm'],
