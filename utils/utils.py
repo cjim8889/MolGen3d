@@ -14,6 +14,9 @@ def create_model(config):
             hidden_dim=config['hidden_dim'], 
             block_size=config['block_size'], 
             max_nodes=29,
+            conv1x1=False,
+            batch_norm=False,
+            partition_size=(2, 1),
             num_layers_transformer=config['num_layers_transformer'],
         )
         model = model.to(device)
