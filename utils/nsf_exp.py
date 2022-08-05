@@ -44,7 +44,7 @@ def center_gravity_zero_gaussian_log_likelihood_with_constraint(x, size_constrai
 class NSFCoorFixedExp:
     def __init__(self, config) -> None:
         self.config = config
-        self.config['flow'] = "NSFCoorFixedExp" 
+        self.config['flow'] = "SplineCoorFlow" 
         self.config['model'] = SplineCoorFlow
 
         if "hidden_dim" not in self.config:
