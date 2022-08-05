@@ -9,6 +9,7 @@ class SplineCoorFlow(CouplingBlockFlow):
             block_size=6,
             max_nodes=29,
             n_dim=3,
+            num_bins=256,
             conv1x1=False,
             conv1x1_node_wise=False,
         ) -> None:
@@ -23,7 +24,7 @@ class SplineCoorFlow(CouplingBlockFlow):
                     n_dim=n_dim,
                     hidden_dim=hidden_dim,
                     max_nodes=max_nodes,
-                    num_bins=12,
+                    num_bins=num_bins,
                     hidden_length=4
                 )
             )
