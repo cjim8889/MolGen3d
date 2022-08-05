@@ -36,6 +36,8 @@ parser.add_argument("--autocast", help="Autocast", type=int, default=0)
 parser.add_argument("--loadfrom", help="Load from checkpoint", type=str, default=None)
 parser.add_argument("--no_opt", help="No optimiser", type=int, default=0)
 
+parser.add_argument("--num_bins", help="Number of bins", type=int, default=128)
+
 parser.add_argument("--encoder_size", help="Encoder Size for Vert Net", type=int, default=2)
 parser.add_argument("--classifier", help="Classifier", type=str, default=None)
 
@@ -231,6 +233,7 @@ if __name__ == "__main__":
             no_opt=args.no_opt == 0,
             size_constraint=args.size_constraint,
             batch_norm=args.batch_norm == 1,
+            num_bins=args.num_bins,
         )
 
         exp = NSFCoorFixedExp(config=config)
