@@ -15,6 +15,7 @@ def create_model(config):
             block_size=config['block_size'], 
             max_nodes=config['size_constraint'],
         )
+        model = model.to(device)
     elif config['flow'] == "TransformerCoorFlow":
         model = config['model'](
             hidden_dim=config['hidden_dim'], 
