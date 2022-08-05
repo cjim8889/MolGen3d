@@ -20,6 +20,7 @@ parser.add_argument("--conv1x1_node_wise", help="Conv1x1 node wise", type=int, d
 parser.add_argument("--partition_size", help="Partition size", type=int, default=9)
 parser.add_argument("--size_constraint", help="Size constraint", type=int, default=18)
 parser.add_argument("--batch_norm", help="Batch norm", type=int, default=1)
+parser.add_argument("--act_norm", help="Act norm", type=int, default=1)
 
 parser.add_argument("--optimiser", help="Optimiser", type=str, default="Adam")
 parser.add_argument("--lr", help="Learning rate", type=float, default=1e-03)
@@ -208,6 +209,7 @@ if __name__ == "__main__":
             partition_size=args.partition_size,
             size_constraint=args.size_constraint,
             batch_norm=args.batch_norm == 1,
+            act_norm=args.act_norm == 1,
         )
 
         exp = TransCoorFixedExp(config=config)

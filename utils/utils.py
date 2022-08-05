@@ -38,6 +38,7 @@ def create_model(config):
             num_layers_transformer=config['num_layers_transformer'],
             conv1x1_node_wise=config['conv1x1_node_wise'],
             batch_norm=config['batch_norm'],
+            act_norm=config['act_norm'],
         )
         model = model.to(device)
     elif config['flow'] == "AtomFlow":

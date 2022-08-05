@@ -1,7 +1,7 @@
 from torch import nn
 from .block import DimWiseCouplingBlockFlow, NodeWiseCouplingBlockFlow, CouplingBlockFlow
 from .conv import Conv1x1
-from .batchnorm import BatchNormFlow
+from .norm import BatchNormFlow, ActNormFlow
 class TransformerCoorFlow(CouplingBlockFlow):
     def __init__(self, 
             hidden_dim=64, 
@@ -15,6 +15,7 @@ class TransformerCoorFlow(CouplingBlockFlow):
             conv1x1=True,
             conv1x1_node_wise=False,
             batch_norm=True,
+            act_norm=True,
         ) -> None:
 
         super(TransformerCoorFlow, self).__init__()
@@ -33,6 +34,19 @@ class TransformerCoorFlow(CouplingBlockFlow):
                     )
                 )
             
+            if act_norm:
+                self.transforms.append(ActNormFlow(
+                    num_features=max_nodes,
+                ))
+            
+            if conv1x1:
+                self.transforms.append(
+                    Conv1x1(
+                        num_channels=max_nodes if conv1x1_node_wise else n_dim,
+                        node_wise=conv1x1_node_wise,
+                    )
+                )
+
             if node_wise:
                 self.transforms.append(
                     NodeWiseCouplingBlockFlow(
@@ -43,18 +57,16 @@ class TransformerCoorFlow(CouplingBlockFlow):
                         partition_size=partition_size[1]
                     )
                 )
+            
+            if act_norm:
+                self.transforms.append(ActNormFlow(
+                    num_features=max_nodes,
+                ))
 
             if batch_norm:
                 self.transforms.append(
                     BatchNormFlow(
                         num_features=max_nodes,
-                    )
-                )
-
-            if batch_norm:
-                self.transforms.append(
-                    BatchNormFlow(
-                        num_features=n_dim,
                     )
                 )
 
