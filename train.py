@@ -1,5 +1,5 @@
 import argparse
-from utils import CoorExp, VertExp, TwoStageCoorExp, ResCoorExp, TransCoorExp, TransCoorFixedExp
+from utils import CoorExp, VertExp, TwoStageCoorExp, ResCoorExp, TransCoorExp, TransCoorFixedExp, NSFCoorFixedExp
 import torch
 from torch import batch_norm, nn
 
@@ -209,4 +209,29 @@ if __name__ == "__main__":
         )
 
         exp = TransCoorFixedExp(config=config)
+    if args.type  == "spline":
+        config = dict(
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            optimiser=args.optimiser,
+            learning_rate=args.lr,
+            weight_decay=args.weight_decay,
+            scheduler=args.scheduler,
+            scheduler_gamma=args.scheduler_gamma,
+            scheduler_step=args.scheduler_step,
+            dataset="MQM9",
+            architecture="Flow",
+            upload=args.upload,
+            upload_interval=args.upload_interval,
+            hidden_dim=args.hidden_dim,
+            block_size=args.block_size,
+            base=args.base,
+            loadfrom=args.loadfrom,
+            autocast=args.autocast != 0,
+            no_opt=args.no_opt == 0,
+            size_constraint=args.size_constraint,
+            batch_norm=args.batch_norm == 1,
+        )
+
+        exp = NSFCoorFixedExp(config=config)
     exp.train()

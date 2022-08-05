@@ -9,6 +9,12 @@ def create_model(config):
     if config['flow'] == "CoorFlow" or config['flow'] == "TwoStageCoorFlow":
         model = config['model'](hidden_dim=config['hidden_dim'], gnn_size=config['gnn_size'], block_size=config['block_size'])
         model = model.to(device)
+    elif config['flow'] == "SplineCoorFlow":
+        model = config['model'](
+            hidden_dim=config['hidden_dim'], 
+            block_size=config['block_size'], 
+            max_nodes=config['size_constraint'],
+        )
     elif config['flow'] == "TransformerCoorFlow":
         model = config['model'](
             hidden_dim=config['hidden_dim'], 
