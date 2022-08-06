@@ -15,13 +15,13 @@ import gc
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 @torch.jit.script
-def remove_mean_with_constraint(x: torch.Tensor, size_constraint: int):
+def remove_mean_with_constraint(x: torch.Tensor, size_constraint: int=18.):
     mean = torch.sum(x, dim=1, keepdim=True) / size_constraint
     x = x - mean
     return x
 
 @torch.jit.script
-def center_gravity_zero_gaussian_log_likelihood_with_constraint(x: torch.TensorType, size_constraint: int):
+def center_gravity_zero_gaussian_log_likelihood_with_constraint(x: torch.TensorType, size_constraint: int=18.):
     B, N_embedded, D = x.size()
     r2 = torch.sum(x.pow(2), dim=[1, 2])
 
