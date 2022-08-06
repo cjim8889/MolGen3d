@@ -52,7 +52,7 @@ class TransCoorFixedExp:
         if self.config['base'] == "resampled":
             net = BaseNet(
                 hidden_dim=self.config['hidden_dim'],
-                num_layers=self.config['num_layers'],
+                num_layers=self.config['num_layers_transformer'],
                 max_nodes=self.config['size_constraint'],
                 n_dim=3,
             ).to(device)
@@ -64,7 +64,7 @@ class TransCoorFixedExp:
                 eps=0.1,
                 trainable=True
             ).to(device)
-            
+
         elif self.config['base'] == "invariant":
             self.base = torch.distributions.Normal(loc=0., scale=1.)
 
