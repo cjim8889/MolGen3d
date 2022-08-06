@@ -14,6 +14,7 @@ parser.add_argument("--gnn_size", help="Gnn size", type=int, default=2)
 parser.add_argument("--base", help="Base distribution", type=str, default="invariant")
 parser.add_argument("--num_layers", help="Number of layers in transformer", type=int, default=4)
 parser.add_argument("--permute", help="Stochastic permute", type=int, default=1)
+parser.add_argument("--scale", help="Scale", type=int, default=1)
 
 parser.add_argument("--conv1x1", help="Conv1x1", type=int, default=1)
 parser.add_argument("--conv1x1_node_wise", help="Conv1x1 node wise", type=int, default=0)
@@ -210,6 +211,7 @@ if __name__ == "__main__":
             size_constraint=args.size_constraint,
             batch_norm=args.batch_norm == 1,
             act_norm=args.act_norm == 1,
+            scale=args.scale == 1,
         )
 
         exp = TransCoorFixedExp(config=config)

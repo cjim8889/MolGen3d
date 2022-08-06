@@ -74,7 +74,11 @@ class TransCoorFixedExp:
 
                 for idx, batch_data in enumerate(self.train_loader):
                     
+
                     input = rearrange(batch_data.pos, "b n d -> b d n").to(device)
+                    if self.config['scale']:
+                        with torch.no_grad():
+                            input *= 100.
 
                     self.optimiser.zero_grad(set_to_none=True)
                     
