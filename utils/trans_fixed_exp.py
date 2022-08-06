@@ -21,7 +21,7 @@ def remove_mean_with_constraint(x: torch.Tensor, size_constraint: int=18):
     return x
 
 @torch.jit.script
-def center_gravity_zero_gaussian_log_likelihood_with_constraint(x: torch.TensorType, size_constraint: int=18):
+def center_gravity_zero_gaussian_log_likelihood_with_constraint(x: torch.Tensor, size_constraint: int=18):
     B, N_embedded, D = x.size()
     r2 = torch.sum(x.pow(2), dim=[1, 2])
 
