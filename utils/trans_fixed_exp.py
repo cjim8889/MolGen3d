@@ -3,6 +3,8 @@ from .dataset import get_datasets
 from models.pos import TransformerCoorFlow
 from .utils import create_model, argmax_criterion
 from survae.utils import sum_except_batch
+from larsflow.distributions import ResampledGaussian
+from models.pos.distro_base import BaseNet
 
 import wandb
 import torch
@@ -46,12 +48,29 @@ class TransCoorFixedExp:
 
         if "base" not in self.config:
             self.config['base'] = "standard"
+            self.base = torch.distributions.Normal(loc=0., scale=1.)
+        if self.config['base'] == "resampled":
+            net = BaseNet(
+                hidden_dim=self.config['hidden_dim'],
+                num_layers=self.config['num_layers'],
+                max_nodes=self.config['size_constraint'],
+                n_dim=3,
+            )
+
+            self.base = ResampledGaussian(
+                d=self.config['size_constraint'] * 3,
+                a=net,
+                T=100,
+                eps=0.1,
+                trainable=True
+            )
+        elif self.config['base'] == "invariant":
+            self.base = torch.distributions.Normal(loc=0., scale=1.)
 
         self.batch_size = self.config["batch_size"] if "batch_size" in self.config else 128
         self.train_loader, self.test_loader = get_datasets(type="mqm9", batch_size=self.batch_size, size_constraint=self.config['size_constraint'])
         
         self.network, self.optimiser, self.scheduler = create_model(self.config)
-        self.base = torch.distributions.Normal(loc=0., scale=1.)
         self.total_logged = 0
 
     def train(self):
@@ -91,6 +110,8 @@ class TransCoorFixedExp:
                         z = rearrange(z, "b d n -> b n d")
                         zero_mean_z = remove_mean_with_constraint(z, self.config['size_constraint'])
                         log_prob = sum_except_batch(center_gravity_zero_gaussian_log_likelihood_with_constraint(zero_mean_z, self.config['size_constraint']))
+                    elif self.config['base'] == "resampled":
+                        log_prob = sum_except_batch(self.base.log_prob(rearrange(z, "b d n -> b (d n)")))
                     else:
                         log_prob = sum_except_batch(self.base.log_prob(z))
 
@@ -148,12 +169,14 @@ class TransCoorFixedExp:
                             'model_state_dict': self.network.state_dict(),
                             'optimizer_state_dict': self.optimiser.state_dict(),
                             'scheduler_state_dict': self.scheduler.state_dict(),
+                            'base': self.base.state_dict(),
                             }, f"model_checkpoint_{run.id}_{epoch}.pt")
                         else:
                             torch.save({
                             'epoch': epoch,
                             'model_state_dict': self.network.state_dict(),
                             'optimizer_state_dict': self.optimiser.state_dict(),
+                            'base': self.base.state_dict(),
                             }, f"model_checkpoint_{run.id}_{epoch}.pt")
                         
                         wandb.save(f"model_checkpoint_{run.id}_{epoch}.pt")

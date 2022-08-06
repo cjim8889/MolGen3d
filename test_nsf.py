@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from models.nsf import SplineCoorFlow
+from survae.transforms import RationalQuadraticSplineCouplingBijection
 
 net = SplineCoorFlow(
     hidden_dim=64,

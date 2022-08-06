@@ -24,6 +24,8 @@ if __name__ == "__main__":
         atoms_types = batch_data.x.long()
 
         atoms_types = atoms_types.squeeze(2).numpy()
+
+        pos = (torch.floor(pos * 100.0) + torch.randint_like(pos, 0, 5)) / 100.0
         pos = pos.numpy()
 
         for idx in range(pos.shape[0]):

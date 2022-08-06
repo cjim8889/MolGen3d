@@ -19,7 +19,8 @@ if __name__ == "__main__":
         block_size=6,
         encoder_size=4,
         gnn_size=2,
-        num_classes=5
+        num_classes=5,
+        stochastic_permute=False
     )
 
     net.load_state_dict(
@@ -76,6 +77,7 @@ if __name__ == "__main__":
                     else:
                         validity += 1
                         valid_smiles.append(smiles)
+                        print(smiles)
                         break
             except:
                 pass

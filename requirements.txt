@@ -9,3 +9,4 @@ rdkit-pypi==2022.3.2
 egnn-pytorch==0.2.6
 residual-flows @ git+https://github.com/VincentStimper/residual-flows.git
 normflows
+git+https://github.com/VincentStimper/resampled-base-flows.git
