@@ -13,16 +13,12 @@ from xyz2mol.xyz2mol import xyz2mol
 atom_decoder = ['N/A', 'H', 'C', 'N', 'O', 'F']
 atom_decoder_int = [0, 1, 6, 7, 8, 9]
 
-def remove_mean_with_mask(x, node_mask):
-    # assert (x * (1 - node_mask)).abs().sum().item() < 1e-8
-    node_mask = node_mask.unsqueeze(2)
-    N = node_mask.sum(1, keepdims=True)
 
-    mean = torch.sum(x, dim=1, keepdim=True) / N
-    x = x - mean * node_mask
+@torch.jit.script
+def remove_mean_with_constraint(x, size_constraint):
+    mean = torch.sum(x, dim=1, keepdim=True) / size_constraint
+    x = x - mean
     return x
-
-
 # 0.029
 # 0.016
 # 0.018
@@ -46,18 +42,19 @@ if __name__ == "__main__":
     batch_size = 100
 
     coor_net = TransformerCoorFlow(
-        hidden_dim=32,
-        num_layers_transformer=4,
-        block_size=36,
+        hidden_dim=64,
+        num_layers_transformer=6,
+        block_size=12,
         max_nodes=18,
         conv1x1=True,
         conv1x1_node_wise=True,
         batch_norm=False,
-        partition_size=(1,4),
+        act_norm=True,
+        partition_size=(1,6),
     )
     
     coor_net.load_state_dict(
-        torch.load("outputs/model_checkpoint_3vhpmrkv_130.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_8u4h74ee_460.pt", map_location="cpu")['model_state_dict']
     )
 
     print("Loaded TransformerCoorFlow model...")
@@ -66,12 +63,8 @@ if __name__ == "__main__":
 
     mol_size = 18
 
-    z = base.sample(sample_shape=(batch_size, 29, 3))
-    mask = torch.ones(batch_size, 29).to(torch.bool)
-    mask[:, mol_size:] = False
-
-    z = z * mask.unsqueeze(2)
-    z = remove_mean_with_mask(z, node_mask=mask)
+    z = base.sample(sample_shape=(batch_size, mol_size, 3))
+    z = remove_mean_with_constraint(z, mol_size)
 
     print(z.shape)
     with torch.no_grad():
@@ -101,7 +94,9 @@ if __name__ == "__main__":
     zeros = torch.zeros(batch_size, 3, 29 - mol_size)
     pos = torch.cat([pos, zeros], dim=2)
     pos = rearrange(pos, "b d n -> b n d")
-
+    mask = torch.ones(batch_size, 29, dtype=torch.bool)
+    mask[:, mol_size:] = False
+    
     with torch.no_grad():
         atoms_types, _ =net.inverse(
             base.sample(sample_shape=(pos.shape[0], 29, 5)),
