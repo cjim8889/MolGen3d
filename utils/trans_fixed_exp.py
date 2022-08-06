@@ -55,7 +55,7 @@ class TransCoorFixedExp:
                 num_layers=self.config['num_layers'],
                 max_nodes=self.config['size_constraint'],
                 n_dim=3,
-            )
+            ).to(device)
 
             self.base = ResampledGaussian(
                 d=self.config['size_constraint'] * 3,
@@ -63,7 +63,8 @@ class TransCoorFixedExp:
                 T=100,
                 eps=0.1,
                 trainable=True
-            )
+            ).to(device)
+            
         elif self.config['base'] == "invariant":
             self.base = torch.distributions.Normal(loc=0., scale=1.)
 
