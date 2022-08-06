@@ -10,32 +10,26 @@ import numpy as np
 from torch import nn
 from einops import rearrange
 from torch.cuda.amp import GradScaler, autocast
+import math
 import gc
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# @torch.jit.script
+@torch.jit.script
 def remove_mean_with_constraint(x, size_constraint):
-    # assert (x * (1 - node_mask)).abs().sum().item() < 1e-8
-    # node_mask = node_mask.unsqueeze(2)s
-    # N = node_mask.sum(1, keepdims=True)
     mean = torch.sum(x, dim=1, keepdim=True) / size_constraint
     x = x - mean
     return x
 
+@torch.jit.script
 def center_gravity_zero_gaussian_log_likelihood_with_constraint(x, size_constraint):
-    # assert len(x.size()) == 3
     B, N_embedded, D = x.size()
-    # assert_mean_zero_with_mask(x, node_mask)
-
-    # r is invariant to a basis change in the relevant hyperplane, the masked
-    # out values will have zero contribution.
-    r2 = sum_except_batch(x.pow(2))
+    r2 = torch.sum(x.pow(2), dim=[1, 2])
 
     # The relevant hyperplane is (N-1) * D dimensional.
     degrees_of_freedom = (size_constraint - 1) * D
 
     # Normalizing constant and logpx are computed:
-    log_normalizing_constant = -0.5 * degrees_of_freedom * np.log(2 * np.pi)
+    log_normalizing_constant = -0.5 * degrees_of_freedom * math.log(2 * math.pi)
     log_px = -0.5 * r2 + log_normalizing_constant
 
     return log_px
@@ -80,7 +74,11 @@ class TransCoorFixedExp:
 
                 for idx, batch_data in enumerate(self.train_loader):
                     
+
                     input = rearrange(batch_data.pos, "b n d -> b d n").to(device)
+                    if self.config['scale']:
+                        with torch.no_grad():
+                            input *= 100.
 
                     self.optimiser.zero_grad(set_to_none=True)
                     
