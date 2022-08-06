@@ -19,7 +19,7 @@ base = ResampledGaussian(
     T=100,
     eps=0.1,
     trainable=True
-)
+).to("cpu")
 
 log_p = base.log_prob(torch.randn(128, max_nodes * n_dim))
 
