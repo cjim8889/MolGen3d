@@ -73,13 +73,14 @@ class NodeWiseCouplingBlockFlow(CouplingBlockFlow):
         num_layers_transformer=6,
         hidden_dim=64,
         max_nodes=29,
-        partition_size=2
+        partition_size=2,
+        start_idx=0
     ):
         
         super(NodeWiseCouplingBlockFlow, self).__init__()
         self.transforms = nn.ModuleList()
 
-        for idx in range(0, max_nodes, partition_size):
+        for idx in range(start_idx, max_nodes, partition_size):
             ar_net = DenseTransformer(
                 d_input=n_dim,
                 d_output=n_dim * 2,

@@ -58,7 +58,7 @@ if __name__ == "__main__":
         partition_size=(1,6),
     )
 
-    states = torch.load("outputs/model_checkpoint_2vqr2owt_80.pt", map_location="cpu")
+    states = torch.load("outputs/model_checkpoint_2vqr2owt_140.pt", map_location="cpu")
     
     coor_net.load_state_dict(
         states['model_state_dict']
