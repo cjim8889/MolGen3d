@@ -129,30 +129,39 @@ class TransCoorFixedExp:
 
                     loss = argmax_criterion(log_prob, log_det)
 
-                    if idx % 10 == 0 and epoch >= self.config['warmup_epochs']:
+                    if idx % self.config['two_stage_step'] == 0 and epoch >= self.config['warmup_epochs']:
                         if self.config['two_stage']:
-                            if self.config['base'] == "resampled":
-                                with torch.no_grad():
+                            
+                            with torch.no_grad():
+                                if self.config['base'] == "resampled":
                                     z, _ = self.base.forward(num_samples=input.shape[0])
                                     z = rearrange(z, "b (d n) -> b d n", d=3)
+                                elif self.config['base'] == "invariant":
+                                    z = self.base.sample(sample_shape=(input.shape[0], self.config['size_constraint'], 3))
+                                    z = remove_mean_with_constraint(z, self.config['size_constraint'])
+                                    z = rearrange(z, "b d n -> b n d")
 
-                                    pos, _ = self.network.inverse(z)
-                                    pos = rearrange(pos, "b d n -> b n d")
-                                    
-                                    pos = torch.cat([pos, torch.zeros(pos.shape[0], 29 - self.config['size_constraint'], pos.shape[2], device=device)], dim=1)
-                                    
-                                    mask = torch.ones(pos.shape[0], 29, device=device, dtype=torch.bool)
-                                    mask[:, self.config['size_constraint']:] = False
+                                pos, _ = self.network.inverse(z)
+                                pos = rearrange(pos, "b d n -> b n d")
+                                
+                                pos = torch.cat([pos, torch.zeros(pos.shape[0], 29 - self.config['size_constraint'], pos.shape[2], device=device)], dim=1)
+                                
+                                mask = torch.ones(pos.shape[0], 29, device=device, dtype=torch.bool)
+                                mask[:, self.config['size_constraint']:] = False
 
-                                    output = torch.sigmoid(self.classifier(pos, mask=mask)).squeeze()
-                                    
-                                    pos_invalid = pos[output < 0.5]
-                                    pos_invalid = rearrange(pos_invalid[:, :self.config['size_constraint'], :], "b n d -> b d n")
-
+                                output = torch.sigmoid(self.classifier(pos, mask=mask)).squeeze()
+                                
+                                pos_invalid = pos[output < 0.5]
+                                pos_invalid = rearrange(pos_invalid[:, :self.config['size_constraint'], :], "b n d -> b d n")
 
                                 z, log_det = self.network(pos_invalid)
-                                log_prob = sum_except_batch(self.base.log_prob(rearrange(z, "b d n -> b (d n)")))
 
+                                if self.config['base'] == "resampled":
+                                    log_prob = sum_except_batch(self.base.log_prob(rearrange(z, "b d n -> b (d n)")))
+                                elif self.config['base'] == "invariant":
+                                    z = remove_mean_with_constraint(z, self.config['size_constraint'])
+                                    log_prob = sum_except_batch(center_gravity_zero_gaussian_log_likelihood_with_constraint(zero_mean_z, self.config['size_constraint']))
+                                
                                 max_nll= -argmax_criterion(log_prob, log_det)
 
                     if (loss > 1e3 and epoch > 5) or torch.isnan(loss):
@@ -212,14 +221,14 @@ class TransCoorFixedExp:
                             'model_state_dict': self.network.state_dict(),
                             'optimizer_state_dict': self.optimiser.state_dict(),
                             'scheduler_state_dict': self.scheduler.state_dict(),
-                            'base': self.base.state_dict(),
+                            'base': self.base.state_dict() if self.config['base'] == "resampled" else 0.,
                             }, f"model_checkpoint_{run.id}_{epoch}.pt")
                         else:
                             torch.save({
                             'epoch': epoch,
                             'model_state_dict': self.network.state_dict(),
                             'optimizer_state_dict': self.optimiser.state_dict(),
-                            'base': self.base.state_dict(),
+                            'base': self.base.state_dict() if self.config['base'] == "resampled" else 0.,
                             }, f"model_checkpoint_{run.id}_{epoch}.pt")
                         
                         wandb.save(f"model_checkpoint_{run.id}_{epoch}.pt")

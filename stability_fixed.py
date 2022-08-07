@@ -5,6 +5,9 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 from models.argmax.atom import AtomFlow
 from models.pos.flow import TransformerCoorFlow
+from models.pos.distro_base import BaseNet
+from larsflow.distributions import ResampledGaussian
+
 import torch
 import numpy as np
 from einops import rearrange
@@ -34,16 +37,18 @@ def remove_mean_with_constraint(x, size_constraint):
 # 0.036
 if __name__ == "__main__":
     # train_loader, test_loader = get_datasets(type="mqm9")
-    base = torch.distributions.Normal(loc=0., scale=1.)
+    base_normal = torch.distributions.Normal(loc=0., scale=1.)
     # batch = next(iter(train_loader))
 
     # pos = batch.pos
     # mask = batch.mask
-    batch_size = 100
+
+    resampled = True
+    batch_size = 1000
 
     coor_net = TransformerCoorFlow(
         hidden_dim=64,
-        num_layers_transformer=6,
+        num_layers_transformer=5,
         block_size=12,
         max_nodes=18,
         conv1x1=True,
@@ -52,10 +57,33 @@ if __name__ == "__main__":
         act_norm=True,
         partition_size=(1,6),
     )
+
+    states = torch.load("outputs/model_checkpoint_2vqr2owt_80.pt", map_location="cpu")
     
     coor_net.load_state_dict(
-        torch.load("outputs/model_checkpoint_8u4h74ee_460.pt", map_location="cpu")['model_state_dict']
+        states['model_state_dict']
     )
+
+    if resampled:
+        net = BaseNet(
+            hidden_dim=64,
+            num_layers=5,
+            max_nodes=18,
+            n_dim=3,
+        )
+
+        base = ResampledGaussian(
+            d=18 * 3,
+            a=net,
+            T=100,
+            eps=0.1,
+            trainable=True
+        )
+
+        base.load_state_dict(
+            states['base']
+        )
+        base.eval()
 
     print("Loaded TransformerCoorFlow model...")
 
@@ -63,13 +91,14 @@ if __name__ == "__main__":
 
     mol_size = 18
 
-    z = base.sample(sample_shape=(batch_size, mol_size, 3))
-    z = remove_mean_with_constraint(z, mol_size)
+    z, _ = base.forward(num_samples=batch_size)
+    z = rearrange(z, "b (d n) -> b d n", d=3)
+    # z = remove_mean_with_constraint(z, mol_size)
 
     print(z.shape)
     with torch.no_grad():
         pos, _ = coor_net.inverse(
-            rearrange(z[:, :mol_size, :], "b n d -> b d n"),
+            z,
         )
 
     print("Sampled Positions...")
@@ -99,7 +128,7 @@ if __name__ == "__main__":
     
     with torch.no_grad():
         atoms_types, _ =net.inverse(
-            base.sample(sample_shape=(pos.shape[0], 29, 5)),
+            base_normal.sample(sample_shape=(pos.shape[0], 29, 5)),
             pos,
             mask = mask
         )

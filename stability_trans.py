@@ -5,6 +5,7 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 from models.argmax.atom import AtomFlow
 from models.pos.flow import TransformerCoorFlow
+from larsflow.distributions import ResampledGaussian
 import torch
 import numpy as np
 from einops import rearrange
