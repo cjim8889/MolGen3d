@@ -26,6 +26,7 @@ parser.add_argument("--act_norm", help="Act norm", type=int, default=1)
 parser.add_argument("--optimiser", help="Optimiser", type=str, default="Adam")
 parser.add_argument("--lr", help="Learning rate", type=float, default=1e-03)
 parser.add_argument("--weight_decay", help="Weight decay", type=float, default=1e-06)
+parser.add_argument("--warmup_epochs", help="Warmup epochs", type=int, default=50)
 
 parser.add_argument("--scheduler", help="Scheduler", type=str, default="StepLR")
 parser.add_argument("--scheduler_step", help="Scheduler step", type=int, default=3)
@@ -215,7 +216,8 @@ if __name__ == "__main__":
             act_norm=args.act_norm == 1,
             scale=args.scale == 1,
             two_stage=args.two_stage == 1,
-            classifier=args.classifier
+            classifier=args.classifier,
+            warmup_epochs=args.warmup_epochs,
         )
 
         exp = TransCoorFixedExp(config=config)
