@@ -139,8 +139,8 @@ class TransCoorFixedExp:
                                     pos, _ = self.network.inverse(z)
                                     pos = rearrange(pos, "b d n -> b n d")
                                     pos = torch.cat([pos, torch.zeros(pos.shape[0], self.config['size_constraint'] - pos.shape[1], pos.shape[2], device=device)], dim=1)
-                                    mask = torch.ones(pos.shape[0], 29, device=device, dtype=torch.bool)
-                                    mask[:, self.config['size_constraint']:] = False
+                                    mask = torch.ones(pos.shape[0], 29, 1, device=device, dtype=torch.bool)
+                                    mask[:, self.config['size_constraint']:, :] = False
 
                                     output = torch.sigmoid(self.classifier(pos, mask=mask)).squeeze()
 
