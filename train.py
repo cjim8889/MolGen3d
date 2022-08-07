@@ -215,6 +215,7 @@ if __name__ == "__main__":
             act_norm=args.act_norm == 1,
             scale=args.scale == 1,
             two_stage=args.two_stage == 1,
+            classifier=args.classifier
         )
 
         exp = TransCoorFixedExp(config=config)
