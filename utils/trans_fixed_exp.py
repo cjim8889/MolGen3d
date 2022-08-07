@@ -156,7 +156,7 @@ class TransCoorFixedExp:
                                 pos_invalid = rearrange(pos_invalid[:, :self.config['size_constraint'], :], "b n d -> b d n")
 
                                 wandb.log({"Invalid": pos_invalid.shape[0] * 1.0 / input.shape[0]}, step=step)
-                                
+
                             z, log_det = self.network(pos_invalid)
 
                             if self.config['base'] == "resampled":
@@ -186,8 +186,9 @@ class TransCoorFixedExp:
                     loss_step_count += 1
 
                     if idx % 10 == 0 and epoch >= self.config['warmup_epochs']:
-                        wandb.log({"epoch": epoch, "MaxNLL": max_nll.item()}, step=step)
-                        loss += max_nll
+                        if self.config['two_stage']:
+                            wandb.log({"epoch": epoch, "MaxNLL": max_nll.item()}, step=step)
+                            loss += max_nll
                         
 
                     if self.config['autocast']:
