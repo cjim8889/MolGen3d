@@ -33,6 +33,8 @@ parser.add_argument("--scheduler_step", help="Scheduler step", type=int, default
 parser.add_argument("--scheduler_gamma", help="Scheduler gamma", type=float, default=0.96)
 parser.add_argument("--two_stage_step", help="Two stage step", type=int, default=3)
 
+parser.add_argument("--squeeze", help="Apply Squeeze Flow", type=int, default=0)
+
 parser.add_argument("--upload", help="Upload to wandb", type=bool, default=False)
 parser.add_argument("--upload_interval", help="Upload to wandb every n epochs", type=int, default=10)
 
@@ -220,6 +222,7 @@ if __name__ == "__main__":
             classifier=args.classifier,
             warmup_epochs=args.warmup_epochs,
             two_stage_step=args.two_stage_step,
+            squeeze=args.squeeze == 1,
         )
 
         exp = TransCoorFixedExp(config=config)

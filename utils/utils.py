@@ -26,6 +26,7 @@ def create_model(config):
             batch_norm=False,
             partition_size=(2, 1),
             num_layers_transformer=config['num_layers_transformer'],
+            squeeze=config['squeeze'],
         )
         model = model.to(device)
     elif config['flow'] == "TransformerCoorFlowFixed":
@@ -39,6 +40,7 @@ def create_model(config):
             conv1x1_node_wise=config['conv1x1_node_wise'],
             batch_norm=config['batch_norm'],
             act_norm=config['act_norm'],
+            squeeze=config['squeeze'],
         )
         model = model.to(device)
     elif config['flow'] == "AtomFlow":
