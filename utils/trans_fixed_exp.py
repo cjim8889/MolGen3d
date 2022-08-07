@@ -5,6 +5,7 @@ from .utils import create_model, argmax_criterion
 from survae.utils import sum_except_batch
 from larsflow.distributions import ResampledGaussian
 from models.pos.distro_base import BaseNet
+from models.classifier import PosClassifier
 
 import wandb
 import torch
@@ -74,6 +75,16 @@ class TransCoorFixedExp:
         self.network, self.optimiser, self.scheduler = create_model(self.config)
         self.total_logged = 0
 
+        if self.config['two_stage']:
+            self.classifier = PosClassifier(feats_dim=64, hidden_dim=256, gnn_size=5)
+            self.classifier.load_state_dict(torch.load(config['classifier'], map_location=device)['model_state_dict'])
+
+            self.classifier = self.classifier.to(device)
+
+            for param in self.classifier.parameters():
+                param.requires_grad = False
+
+
     def train(self):
         batch_data = next(iter(self.train_loader))
 
@@ -117,6 +128,28 @@ class TransCoorFixedExp:
                         log_prob = sum_except_batch(self.base.log_prob(z))
 
                     loss = argmax_criterion(log_prob, log_det)
+
+                    if idx % 5 == 0:
+                        if self.config['two_stage']:
+                            if self.config['base'] == "resampled":
+                                with torch.no_grad():
+                                    z, _ = self.base.forward(num_samples=input.shape[0])
+                                    z = rearrange(z, "b (d n) -> b d n", d=3)
+
+                                    pos, _ = self.network.inverse(z)
+                                    pos = rearrange(pos, "b d n -> b n d")
+                                    pos = torch.cat([pos, torch.zeros(pos.shape[0], self.config['size_constraint'] - pos.shape[1], pos.shape[2], device=device)], dim=1)
+                                    mask = torch.ones(pos.shape[0], 29, device=device, dtype=torch.bool)
+                                    mask[:, self.config['size_constraint']:] = False
+
+                                    output = torch.sigmoid(self.classifier(pos, mask=mask)).squeeze()
+
+                                    pos_invalid = pos[output < 0.5]
+
+                                z, log_det = self.network(pos_invalid)
+                                log_prob = sum_except_batch(self.base.log_prob(rearrange(z, "b d n -> b (d n)")))
+
+                                loss += -argmax_criterion(log_prob, log_det)
 
                     if (loss > 1e3 and epoch > 5) or torch.isnan(loss):
                         if self.total_logged < 30:

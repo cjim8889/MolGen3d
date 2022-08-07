@@ -23,4 +23,6 @@ base = ResampledGaussian(
 
 log_p = base.log_prob(torch.randn(128, max_nodes * n_dim))
 
-print(log_p)
+
+z, _ = base.forward(128)
+print(z.shape)
