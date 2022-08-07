@@ -137,7 +137,8 @@ class TransCoorFixedExp:
                                     z, _ = self.base.forward(num_samples=input.shape[0])
                                     z = rearrange(z, "b (d n) -> b d n", d=3)
                                 elif self.config['base'] == "invariant":
-                                    z = self.base.sample(sample_shape=(input.shape[0], self.config['size_constraint'], 3))
+                                    z = torch.randn(input.shape[0], self.config['size_constraint'], 3, device=device)
+                                    # z = self.base.sample(sample_shape=(input.shape[0], self.config['size_constraint'], 3))
                                     z = remove_mean_with_constraint(z, self.config['size_constraint'])
                                     z = rearrange(z, "b d n -> b n d")
 
@@ -154,15 +155,17 @@ class TransCoorFixedExp:
                                 pos_invalid = pos[output < 0.5]
                                 pos_invalid = rearrange(pos_invalid[:, :self.config['size_constraint'], :], "b n d -> b d n")
 
-                                z, log_det = self.network(pos_invalid)
-
-                                if self.config['base'] == "resampled":
-                                    log_prob = sum_except_batch(self.base.log_prob(rearrange(z, "b d n -> b (d n)")))
-                                elif self.config['base'] == "invariant":
-                                    z = remove_mean_with_constraint(z, self.config['size_constraint'])
-                                    log_prob = sum_except_batch(center_gravity_zero_gaussian_log_likelihood_with_constraint(zero_mean_z, self.config['size_constraint']))
+                                wandb.log({"Invalid": pos_invalid.shape[0] * 1.0 / input.shape[0]}, step=step)
                                 
-                                max_nll= -argmax_criterion(log_prob, log_det)
+                            z, log_det = self.network(pos_invalid)
+
+                            if self.config['base'] == "resampled":
+                                log_prob = sum_except_batch(self.base.log_prob(rearrange(z, "b d n -> b (d n)")))
+                            elif self.config['base'] == "invariant":
+                                z = remove_mean_with_constraint(z, self.config['size_constraint'])
+                                log_prob = sum_except_batch(center_gravity_zero_gaussian_log_likelihood_with_constraint(zero_mean_z, self.config['size_constraint']))
+                            
+                            max_nll= -argmax_criterion(log_prob, log_det)
 
                     if (loss > 1e3 and epoch > 5) or torch.isnan(loss):
                         if self.total_logged < 30:
