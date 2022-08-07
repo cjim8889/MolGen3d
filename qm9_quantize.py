@@ -36,7 +36,7 @@ if __name__ == "__main__":
             pos_t = pos[idx, :size].tolist()
 
             total_count += 1
-
+ 
             try:
                 # print(pos_t, atom_ty)
                 mols = xyz2mol(

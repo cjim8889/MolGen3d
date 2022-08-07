@@ -40,6 +40,8 @@ parser.add_argument("--no_opt", help="No optimiser", type=int, default=0)
 
 parser.add_argument("--num_bins", help="Number of bins", type=int, default=128)
 
+parser.add_argument("--two_stage", help="Two stage", type=int, default=1)
+
 parser.add_argument("--encoder_size", help="Encoder Size for Vert Net", type=int, default=2)
 parser.add_argument("--classifier", help="Classifier", type=str, default=None)
 
@@ -212,6 +214,7 @@ if __name__ == "__main__":
             batch_norm=args.batch_norm == 1,
             act_norm=args.act_norm == 1,
             scale=args.scale == 1,
+            two_stage=args.two_stage == 1,
         )
 
         exp = TransCoorFixedExp(config=config)
