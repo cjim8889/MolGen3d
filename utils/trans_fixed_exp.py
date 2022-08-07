@@ -129,7 +129,7 @@ class TransCoorFixedExp:
 
                     loss = argmax_criterion(log_prob, log_det)
 
-                    if idx % 5 == 0:
+                    if idx % 10 == 0 and epoch >= self.config['warmup_epochs']:
                         if self.config['two_stage']:
                             if self.config['base'] == "resampled":
                                 with torch.no_grad():
@@ -138,21 +138,22 @@ class TransCoorFixedExp:
 
                                     pos, _ = self.network.inverse(z)
                                     pos = rearrange(pos, "b d n -> b n d")
-                                    pos = torch.cat([pos, torch.zeros(pos.shape[0], self.config['size_constraint'] - pos.shape[1], pos.shape[2], device=device)], dim=1)
                                     
-                                    print(pos.shape)
+                                    pos = torch.cat([pos, torch.zeros(pos.shape[0], 29 - self.config['size_constraint'], pos.shape[2], device=device)], dim=1)
+                                    
                                     mask = torch.ones(pos.shape[0], 29, device=device, dtype=torch.bool)
                                     mask[:, self.config['size_constraint']:] = False
 
                                     output = torch.sigmoid(self.classifier(pos, mask=mask)).squeeze()
                                     
                                     pos_invalid = pos[output < 0.5]
+                                    pos_invalid = rearrange(pos_invalid[:, :self.config['size_constraint'], :], "b n d -> b d n")
 
 
                                 z, log_det = self.network(pos_invalid)
                                 log_prob = sum_except_batch(self.base.log_prob(rearrange(z, "b d n -> b (d n)")))
 
-                                loss += -argmax_criterion(log_prob, log_det)
+                                max_nll= -argmax_criterion(log_prob, log_det)
 
                     if (loss > 1e3 and epoch > 5) or torch.isnan(loss):
                         if self.total_logged < 30:
@@ -171,6 +172,11 @@ class TransCoorFixedExp:
                     loss_step += loss.detach()
                     loss_ep_train += loss.detach()
                     loss_step_count += 1
+
+                    if idx % 10 == 0 and epoch >= self.config['warmup_epochs']:
+                        wandb.log({"epoch": epoch, "MaxNLL": max_nll.item()}, step=step)
+                        loss += max_nll
+                        
 
                     if self.config['autocast']:
                         scaler.scale(loss).backward()
