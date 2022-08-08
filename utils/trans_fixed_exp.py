@@ -185,7 +185,7 @@ class TransCoorFixedExp:
                     loss_ep_train += loss.detach()
                     loss_step_count += 1
 
-                    if idx % 10 == 0 and epoch >= self.config['warmup_epochs']:
+                    if idx % self.config['two_stage_step'] == 0 and epoch >= self.config['warmup_epochs']:
                         if self.config['two_stage']:
                             wandb.log({"epoch": epoch, "MaxNLL": max_nll.item()}, step=step)
                             loss += max_nll
