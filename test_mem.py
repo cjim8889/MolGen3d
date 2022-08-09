@@ -12,9 +12,16 @@ model = TransformerCoorFlow(
     num_layers_transformer=4,
     partition_size=(1, 9),
     conv1x1_node_wise=True,
-    batch_norm=True
+    batch_norm=False,
+    conv1x1=False,
+    act_norm=False,
 )
 
 input = torch.randn(128, 3, 18)
 
-model(input)
+z, log_det = model(input)
+
+print(log_det)
+
+x_re, log_det = model.inverse(z)
+print(log_det)

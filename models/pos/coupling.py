@@ -1,3 +1,4 @@
+from audioop import reverse
 from survae.transforms.bijections import Bijection
 from survae.utils import sum_except_batch
 import torch.nn as nn
@@ -7,6 +8,73 @@ def safe_div(num, den, eps = 1e-8):
     res = num.div(den.clamp(min = eps))
     res.masked_fill_(den == 0, 0.)
     return res
+
+class AffineCouplingFlow(Bijection):
+    def __init__(self, 
+        ar_net, 
+        scaling_func=lambda x: torch.exp(x), 
+        split_dim=1,
+        chunk_dim=2,
+        n_dim=3,
+        reverse=False,
+    ):
+        super(AffineCouplingFlow, self).__init__()
+        
+        self.ar_net = ar_net
+        self.split_dim = split_dim
+        self.chunk_dim = chunk_dim
+        self.scaling_func = scaling_func
+        self.reverse = reverse
+    
+    def _split(self, z):
+        if self.reverse:
+            return torch.chunk(
+                z,
+                2,
+                dim=self.chunk_dim,
+            )[::-1]
+        else:
+            return torch.chunk(
+                z,
+                2,
+                dim=self.chunk_dim,
+            )
+    def _cat(self, z1, z2):
+        if self.reverse:
+            return torch.cat([z2, z1], dim=self.chunk_dim)
+        else:
+            return torch.cat([z1, z2], dim=self.chunk_dim)
+
+    def _forward(self, x, forward=True):
+        z1, z2 = self._split(x)
+    
+        params = self.ar_net(z1)
+        z2, log_det = self._transform(z2, params, forward=forward)
+
+        z = self._cat(z1, z2)
+
+        return z, log_det
+
+    def forward(self, x, mask=None, logs=None):
+        return self._forward(x, forward=True)
+
+    def inverse(self, x, mask=None):
+        return self._forward(x, forward=False)
+
+    def _transform(self, z, params, forward=True):
+        alpha, shift = params.chunk(2, dim=self.split_dim)
+
+        constrained_scale = self.scaling_func(alpha)
+
+        if forward:
+            z = z * constrained_scale + shift
+            log_det = sum_except_batch(torch.log(constrained_scale))
+        else:
+            z = (z - shift) / constrained_scale
+            log_det = -sum_except_batch(torch.log(constrained_scale))
+        
+        return z, log_det
+
 
 class MaskedAffineCouplingFlow(Bijection):
     def __init__(self, 

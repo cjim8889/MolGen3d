@@ -43,22 +43,23 @@ if __name__ == "__main__":
     # pos = batch.pos
     # mask = batch.mask
 
-    resampled = True
-    batch_size = 1000
+    resampled = False
+    batch_size = 100
 
     coor_net = TransformerCoorFlow(
         hidden_dim=64,
-        num_layers_transformer=5,
-        block_size=12,
+        num_layers_transformer=6,
+        block_size=24,
         max_nodes=18,
         conv1x1=True,
         conv1x1_node_wise=True,
         batch_norm=False,
         act_norm=True,
         partition_size=(1,6),
+        squeeze=True
     )
 
-    states = torch.load("outputs/model_checkpoint_2vqr2owt_140.pt", map_location="cpu")
+    states = torch.load("outputs/model_checkpoint_2gl5660y_360.pt", map_location="cpu")
     
     coor_net.load_state_dict(
         states['model_state_dict']
@@ -84,6 +85,7 @@ if __name__ == "__main__":
             states['base']
         )
         base.eval()
+        
 
     print("Loaded TransformerCoorFlow model...")
 
@@ -91,8 +93,14 @@ if __name__ == "__main__":
 
     mol_size = 18
 
-    z, _ = base.forward(num_samples=batch_size)
-    z = rearrange(z, "b (d n) -> b d n", d=3)
+    if resampled:
+        z, _ = base.forward(num_samples=batch_size)
+        z = rearrange(z, "b (d n) -> b d n", d=3)
+    else:
+        z = torch.randn(batch_size, mol_size, 3,)
+        z = remove_mean_with_constraint(z, mol_size)
+        z = rearrange(z, "b d n -> b n d")
+
     # z = remove_mean_with_constraint(z, mol_size)
 
     print(z.shape)
