@@ -75,7 +75,9 @@ class DenseTransformer(nn.Module):
             decoder_layer.self_attn.out_proj.weight.data /= math.sqrt(2*self.num_layers)
 
         # Initialize output weight matrix to 0:
-        nn.init.zeros_(self.out_linear.weight)
+        # nn.init.zeros_(self.out_linear.weight)
+
+        nn.init.normal_(self.out_linear.weight, 0, 0.01)
         if self.out_linear.bias is not None:
             nn.init.zeros_(self.out_linear.bias)
 

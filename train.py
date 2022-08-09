@@ -32,6 +32,7 @@ parser.add_argument("--scheduler", help="Scheduler", type=str, default="StepLR")
 parser.add_argument("--scheduler_step", help="Scheduler step", type=int, default=3)
 parser.add_argument("--scheduler_gamma", help="Scheduler gamma", type=float, default=0.96)
 parser.add_argument("--two_stage_step", help="Two stage step", type=int, default=3)
+parser.add_argument("--two_stage_mode", help="Two stage mode", type=str, default="maxnll")
 
 parser.add_argument("--squeeze", help="Apply Squeeze Flow", type=int, default=0)
 
@@ -222,6 +223,7 @@ if __name__ == "__main__":
             classifier=args.classifier,
             warmup_epochs=args.warmup_epochs,
             two_stage_step=args.two_stage_step,
+            two_stage_mode=args.two_stage_mode,
             squeeze=args.squeeze == 1,
         )
 
