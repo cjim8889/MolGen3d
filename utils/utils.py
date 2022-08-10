@@ -81,7 +81,7 @@ def create_model(config):
 
         if config['no_opt'] is False:
             optimiser.load_state_dict(states["optimizer_state_dict"])
-            if "scheduler" in config:
+            if "scheduler" in config and config['scheduler'] != "None":
                 scheduler.load_state_dict(states["scheduler_state_dict"])
 
     return model, optimiser, scheduler

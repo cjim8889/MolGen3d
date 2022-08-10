@@ -168,7 +168,6 @@ class TransCoorFixedExp:
                                 
                                 max_nll= -argmax_criterion(log_prob, log_det)
                             elif self.config['two_stage_mode'] == "prob":
-
                                 if self.config['base'] == "resampled":
                                     z, _ = self.base.forward(num_samples=input.shape[0])
                                     z = rearrange(z, "b (d n) -> b d n", d=3)
@@ -215,7 +214,7 @@ class TransCoorFixedExp:
                                 wandb.log({"epoch": epoch, "MaxNLL": max_nll.item()}, step=step)
                             elif self.config['two_stage_mode'] == "prob":
                                 wandb.log({"epoch": epoch, "MeanProb": max_nll.item()}, step=step)
-                                
+
                             loss += max_nll
                         
 
