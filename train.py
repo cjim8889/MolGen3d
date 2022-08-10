@@ -35,6 +35,7 @@ parser.add_argument("--two_stage_step", help="Two stage step", type=int, default
 parser.add_argument("--two_stage_mode", help="Two stage mode", type=str, default="maxnll")
 
 parser.add_argument("--squeeze", help="Apply Squeeze Flow", type=int, default=0)
+parser.add_argument("--squeeze_step", help="Squeeze step", type=int, default=3)
 
 parser.add_argument("--upload", help="Upload to wandb", type=bool, default=False)
 parser.add_argument("--upload_interval", help="Upload to wandb every n epochs", type=int, default=10)
@@ -225,6 +226,7 @@ if __name__ == "__main__":
             two_stage_step=args.two_stage_step,
             two_stage_mode=args.two_stage_mode,
             squeeze=args.squeeze == 1,
+            squeeze_step=args.squeeze_step,
         )
 
         exp = TransCoorFixedExp(config=config)
