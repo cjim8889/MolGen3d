@@ -41,6 +41,7 @@ def create_model(config):
             batch_norm=config['batch_norm'],
             act_norm=config['act_norm'],
             squeeze=config['squeeze'],
+            squeeze_step=config['squeeze_step'],
         )
         model = model.to(device)
     elif config['flow'] == "AtomFlow":
