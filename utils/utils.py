@@ -86,8 +86,8 @@ def create_model(config):
             if config["lr_reset"]:
                 for param_group in optimiser.param_groups:
                     param_group['lr'] = config["learning_rate"]
-                    param_group['weight_decay'] = config["weight_decay"]
-                    
+                    # param_group['weight_decay'] = config["weight_decay"]
+
             if "scheduler" in config and config['scheduler'] != "None":
                 scheduler.load_state_dict(states["scheduler_state_dict"])
 
