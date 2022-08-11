@@ -44,6 +44,7 @@ parser.add_argument("--autocast", help="Autocast", type=int, default=0)
 parser.add_argument("--loadfrom", help="Load from checkpoint", type=str, default=None)
 parser.add_argument("--no_opt", help="No optimiser", type=int, default=0)
 
+parser.add_argument("--lr_reset", help="Reset learning rate", type=int, default=0)
 parser.add_argument("--num_bins", help="Number of bins", type=int, default=128)
 
 parser.add_argument("--two_stage", help="Two stage", type=int, default=1)
@@ -227,6 +228,7 @@ if __name__ == "__main__":
             two_stage_mode=args.two_stage_mode,
             squeeze=args.squeeze == 1,
             squeeze_step=args.squeeze_step,
+            lr_reset=args.lr_reset == 1,
         )
 
         exp = TransCoorFixedExp(config=config)
