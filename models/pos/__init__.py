@@ -1,1 +1,1 @@
-from .flow import TransformerCoorFlow
+from .flow import TransformerCoorFlow, TransformerCoorFlowV2

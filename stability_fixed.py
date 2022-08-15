@@ -59,7 +59,7 @@ if __name__ == "__main__":
         squeeze=True
     )
 
-    states = torch.load("outputs/model_checkpoint_2gl5660y_640.pt", map_location="cpu")
+    states = torch.load("outputs/model_checkpoint_1bccl6yj_210.pt", map_location="cpu")
     
     coor_net.load_state_dict(
         states['model_state_dict']
