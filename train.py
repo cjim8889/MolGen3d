@@ -52,6 +52,9 @@ parser.add_argument("--two_stage", help="Two stage", type=int, default=1)
 parser.add_argument("--encoder_size", help="Encoder Size for Vert Net", type=int, default=2)
 parser.add_argument("--classifier", help="Classifier", type=str, default=None)
 
+parser.add_argument("--warm_up", help="Warm up", type=int, default=0)
+parser.add_argument("--warm_up_iters", help="Warm up iters", type=int, default=120)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def weight_init(m):
@@ -193,9 +196,10 @@ if __name__ == "__main__":
         )
 
         exp = TransCoorExp(config=config)
-    if args.type  == "trans_fixed":
+    if args.type  == "trans_fixed" or args.type == "trans_fixed_v2":
         config = dict(
             epochs=args.epochs,
+            type=args.type,
             batch_size=args.batch_size,
             optimiser=args.optimiser,
             learning_rate=args.lr,
@@ -229,6 +233,8 @@ if __name__ == "__main__":
             squeeze=args.squeeze == 1,
             squeeze_step=args.squeeze_step,
             lr_reset=args.lr_reset == 1,
+            warm_up=args.warm_up == 1,
+            warm_up_iters=args.warm_up_iters,
         )
 
         exp = TransCoorFixedExp(config=config)

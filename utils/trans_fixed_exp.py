@@ -1,6 +1,6 @@
 from distutils.command.config import config
 from .dataset import get_datasets
-from models.pos import TransformerCoorFlow
+from models.pos import TransformerCoorFlow, TransformerCoorFlowV2
 from .utils import create_model, argmax_criterion
 from survae.utils import sum_except_batch
 from larsflow.distributions import ResampledGaussian
@@ -42,7 +42,11 @@ class TransCoorFixedExp:
     def __init__(self, config) -> None:
         self.config = config
         self.config['flow'] = "TransformerCoorFlowFixed" 
-        self.config['model'] = TransformerCoorFlow
+
+        if self.config['type'] == "trans_fixed":
+            self.config['model'] = TransformerCoorFlow
+        elif self.config['type'] == "trans_fixed_v2":
+            self.config['model'] = TransformerCoorFlowV2
 
         if "hidden_dim" not in self.config:
             self.config['hidden_dim'] = 32
@@ -73,6 +77,15 @@ class TransCoorFixedExp:
         self.train_loader, self.test_loader = get_datasets(type="mqm9", batch_size=self.batch_size, size_constraint=self.config['size_constraint'])
         
         self.network, self.optimiser, self.scheduler = create_model(self.config)
+
+        if self.config['warm_up']:
+            self.warm_up_scheduler = torch.optim.lr_scheduler.LinearLR(
+                self.optimiser,
+                start_factor=0.01,
+                end_factor=1.0,
+                total_iters=self.config['warm_up_iters'],
+            )
+
         self.total_logged = 0
 
         if self.config['two_stage']:
@@ -228,7 +241,9 @@ class TransCoorFixedExp:
                         loss.backward()
                         nn.utils.clip_grad_norm_(self.network.parameters(), max_norm=2)
                         self.optimiser.step()
-        
+
+                    if self.config['warm_up']:
+                        self.warm_up_scheduler.step()
 
                     step += 1
                     if loss_step_count % 10 == 0:

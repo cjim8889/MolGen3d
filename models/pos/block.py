@@ -2,6 +2,8 @@ from survae.transforms.bijections import Bijection
 from .utils import create_mask_dim_wise, create_mask_node_wise
 from .coupling import MaskedAffineCouplingFlow
 from survae.transforms.bijections import Bijection
+from .conv import Conv1x1
+from .norm import ActNormFlow
 
 from .transformer import DenseTransformer
 import torch
@@ -39,7 +41,10 @@ class DimWiseCouplingBlockFlow(CouplingBlockFlow):
         num_layers_transformer=6,
         hidden_dim=64,
         max_nodes=29,
-        partition_size=1
+        partition_size=1,
+        act_norm=False,
+        conv1x1=False,
+        dropout=0.1,
     ):
         super(DimWiseCouplingBlockFlow, self).__init__()
         self.transforms = nn.ModuleList()
@@ -51,7 +56,7 @@ class DimWiseCouplingBlockFlow(CouplingBlockFlow):
                 d_model=hidden_dim,
                 num_layers=num_layers_transformer,
                 dim_feedforward=hidden_dim * 2,
-                # dropout=0
+                dropout=dropout,
             )
 
             mask = mask_init([i for i in range(idx, min(idx + partition_size, n_dim))], n_dim)
@@ -62,6 +67,19 @@ class DimWiseCouplingBlockFlow(CouplingBlockFlow):
                 scaling_func=torch.nn.Softplus(),
                 split_dim=1
             )
+
+            if act_norm:
+                self.transforms.append(ActNormFlow(
+                    num_features=max_nodes,
+                ))
+            
+            if conv1x1:
+                self.transforms.append(
+                    Conv1x1(
+                        num_channels=max_nodes,
+                        node_wise=True,
+                    )
+                )
 
             self.transforms.append(tr)
 
@@ -74,7 +92,10 @@ class NodeWiseCouplingBlockFlow(CouplingBlockFlow):
         hidden_dim=64,
         max_nodes=29,
         partition_size=2,
-        start_idx=0
+        start_idx=0,
+        act_norm=False,
+        conv1x1=False,
+        dropout=0.1,
     ):
         
         super(NodeWiseCouplingBlockFlow, self).__init__()
@@ -87,7 +108,7 @@ class NodeWiseCouplingBlockFlow(CouplingBlockFlow):
                 d_model=hidden_dim,
                 num_layers=num_layers_transformer,
                 dim_feedforward=hidden_dim * 2,
-                # dropout=0
+                dropout=dropout
             )
 
             mask = mask_init([i for i in range(idx, min(idx + partition_size, max_nodes))], max_nodes)
@@ -98,5 +119,18 @@ class NodeWiseCouplingBlockFlow(CouplingBlockFlow):
                 scaling_func=torch.nn.Softplus(),
                 split_dim=1
             )
+
+            if act_norm:
+                self.transforms.append(ActNormFlow(
+                    num_features=max_nodes,
+                ))
+            
+            if conv1x1:
+                self.transforms.append(
+                    Conv1x1(
+                        num_channels=max_nodes,
+                        node_wise=True,
+                    )
+                )
 
             self.transforms.append(tr)
