@@ -198,7 +198,7 @@ class TransCoorFixedExp:
                                 mask = torch.ones(pos.shape[0], 29, device=device, dtype=torch.bool)
                                 mask[:, self.config['size_constraint']:] = False
 
-                                output = torch.sigmoid(self.classifier(pos, mask=mask)).squeeze().mean()
+                                output = torch.sigmoid(self.classifier(pos, mask=mask)).squeeze().sum()
 
                                 max_nll = -output
 

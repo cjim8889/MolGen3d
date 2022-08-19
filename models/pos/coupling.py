@@ -1,4 +1,3 @@
-from audioop import reverse
 from survae.transforms.bijections import Bijection
 from survae.utils import sum_except_batch
 import torch.nn as nn
