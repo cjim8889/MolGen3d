@@ -36,7 +36,7 @@ if __name__ == "__main__":
     validity = 0
     valid_smiles = []
 
-    for batch_data in train_loader:
+    for batch_data in test_loader:
 
         pos = batch_data.pos
         mask = batch_data.mask

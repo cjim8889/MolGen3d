@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 from rdkit import Chem
 from rdkit.Chem import Draw
 from models.argmax.atom import AtomFlow
-from models.pos.flow import TransformerCoorFlow
+from models.pos.flow import TransformerCoorFlow, TransformerCoorFlowV2
 from models.pos.distro_base import BaseNet
 from larsflow.distributions import ResampledGaussian
+from models.classifier import PosClassifier
 
 import torch
 import numpy as np
@@ -44,22 +45,23 @@ if __name__ == "__main__":
     # mask = batch.mask
 
     resampled = False
-    batch_size = 1000
+    batch_size = 200
 
-    coor_net = TransformerCoorFlow(
-        hidden_dim=64,
-        num_layers_transformer=6,
-        block_size=24,
+    coor_net = TransformerCoorFlowV2(
+        hidden_dim=128,
+        num_layers_transformer=8,
+        block_size=6,
         max_nodes=18,
         conv1x1=True,
         conv1x1_node_wise=True,
         batch_norm=False,
         act_norm=True,
         partition_size=(1,6),
-        squeeze=True
+        squeeze=True,
+        squeeze_step=2
     )
 
-    states = torch.load("outputs/model_checkpoint_1bccl6yj_210.pt", map_location="cpu")
+    states = torch.load("outputs/model_checkpoint_34oyn5gh_3180.pt", map_location="cpu")
     
     coor_net.load_state_dict(
         states['model_state_dict']
@@ -112,6 +114,11 @@ if __name__ == "__main__":
     print("Sampled Positions...")
     print(pos.shape)
 
+    classifier = PosClassifier(feats_dim=64, hidden_dim=256, gnn_size=5)
+    classifier.load_state_dict(torch.load("classifier.pt", map_location="cpu")['model_state_dict'])
+
+
+
     net = AtomFlow(
         hidden_dim=32,
         block_size=6,
@@ -122,7 +129,7 @@ if __name__ == "__main__":
     )
 
     net.load_state_dict(
-        torch.load("outputs/model_checkpoint_3pchowk4_200.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_3pchowk4_65.pt", map_location="cpu")['model_state_dict']
     )
 
     print("Loaded AtomFlow model...")
@@ -133,10 +140,15 @@ if __name__ == "__main__":
     pos = rearrange(pos, "b d n -> b n d")
     mask = torch.ones(batch_size, 29, dtype=torch.bool)
     mask[:, mol_size:] = False
+
+    with torch.no_grad():
+        output = torch.sigmoid(classifier(pos, mask=mask)).squeeze()
+        print(output.mean())
+
     
     with torch.no_grad():
         atoms_types, _ =net.inverse(
-            base_normal.sample(sample_shape=(pos.shape[0], 29, 5)),
+            base_normal.sample(sample_shape=(pos.shape[0], 29, 5)) * mask.unsqueeze(2),
             pos,
             mask = mask
         )

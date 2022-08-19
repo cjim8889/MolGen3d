@@ -17,7 +17,7 @@ class BaseNet(nn.Sequential):
                 d_model=hidden_dim,
                 dim_feedforward=hidden_dim * 2,
                 num_layers=num_layers,
-                dropout=0.1
+                dropout=0
             ),
         )
 
