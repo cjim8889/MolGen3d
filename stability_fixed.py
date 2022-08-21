@@ -44,8 +44,8 @@ if __name__ == "__main__":
     # pos = batch.pos
     # mask = batch.mask
 
-    resampled = False
-    batch_size = 200
+    resampled = True
+    batch_size = 1000
 
     coor_net = TransformerCoorFlowV2(
         hidden_dim=128,
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         squeeze_step=2
     )
 
-    states = torch.load("outputs/model_checkpoint_34oyn5gh_3180.pt", map_location="cpu")
+    states = torch.load("outputs/model_checkpoint_fmgwemb3_2050.pt", map_location="cpu")
     
     coor_net.load_state_dict(
         states['model_state_dict']
@@ -69,8 +69,8 @@ if __name__ == "__main__":
 
     if resampled:
         net = BaseNet(
-            hidden_dim=64,
-            num_layers=5,
+            hidden_dim=128,
+            num_layers=8,
             max_nodes=18,
             n_dim=3,
         )
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     )
 
     net.load_state_dict(
-        torch.load("outputs/model_checkpoint_3pchowk4_65.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_3pchowk4_200.pt", map_location="cpu")['model_state_dict']
     )
 
     print("Loaded AtomFlow model...")
