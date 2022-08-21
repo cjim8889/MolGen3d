@@ -54,6 +54,7 @@ class TransCoorFixedExp:
         if "base" not in self.config:
             self.config['base'] = "standard"
             self.base = torch.distributions.Normal(loc=0., scale=1.)
+
         if self.config['base'] == "resampled":
             net = BaseNet(
                 hidden_dim=self.config['hidden_dim'],
@@ -69,8 +70,9 @@ class TransCoorFixedExp:
                 eps=0.1,
                 trainable=True
             ).to(device)
-
         elif self.config['base'] == "invariant":
+            self.base = torch.distributions.Normal(loc=0., scale=1.)
+        else:
             self.base = torch.distributions.Normal(loc=0., scale=1.)
 
         self.batch_size = self.config["batch_size"] if "batch_size" in self.config else 128
