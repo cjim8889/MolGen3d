@@ -24,9 +24,11 @@ def create_model(config):
             max_nodes=29,
             conv1x1=False,
             batch_norm=False,
-            partition_size=(2, 1),
+            act_norm=False,
+            partition_size=(1, 6),
             num_layers_transformer=config['num_layers_transformer'],
             squeeze=config['squeeze'],
+            squeeze_step=config['squeeze_step'],
         )
         model = model.to(device)
     elif config['flow'] == "TransformerCoorFlowFixed":

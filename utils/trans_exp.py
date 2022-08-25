@@ -1,5 +1,5 @@
 from .dataset import get_datasets
-from models.pos import TransformerCoorFlow
+from models.pos import TransformerCoorFlow, TransformerCoorFlowV2
 from .utils import create_model, argmax_criterion
 from survae.utils import sum_except_batch
 
@@ -47,7 +47,7 @@ class TransCoorExp:
     def __init__(self, config) -> None:
         self.config = config
         self.config['flow'] = "TransformerCoorFlow" 
-        self.config['model'] = TransformerCoorFlow
+        self.config['model'] = TransformerCoorFlowV2
 
         if "hidden_dim" not in self.config:
             self.config['hidden_dim'] = 32
