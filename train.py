@@ -192,7 +192,9 @@ if __name__ == "__main__":
             loadfrom=args.loadfrom,
             num_layers_transformer=args.num_layers,
             autocast=args.autocast != 0,
-            no_opt=args.no_opt == 0
+            no_opt=args.no_opt == 0,
+            squeeze=args.squeeze == 1,
+            squeeze_step=args.squeeze_step,
         )
 
         exp = TransCoorExp(config=config)
