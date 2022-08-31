@@ -116,7 +116,7 @@ if __name__ == "__main__":
     # mask = batch.mask
 
     resampled = True
-    batch_size = 1000
+    batch_size = 200
 
     coor_net = TransformerCoorFlowV2(
         hidden_dim=128,
@@ -132,7 +132,7 @@ if __name__ == "__main__":
         squeeze_step=2
     )
 
-    states = torch.load("outputs/model_checkpoint_1mghyk3o_2550.pt", map_location="cpu")
+    states = torch.load("outputs/model_checkpoint_1mghyk3o_3800.pt", map_location="cpu")
     
     coor_net.load_state_dict(
         states['model_state_dict']
