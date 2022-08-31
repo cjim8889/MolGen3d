@@ -6,3 +6,4 @@ from .res_exp import ResCoorExp
 from .trans_exp import TransCoorExp
 from .trans_fixed_exp import TransCoorFixedExp
 from .nsf_exp import NSFCoorFixedExp
+from .con_trans_fixed import ConditionalTransCoorFixedExp

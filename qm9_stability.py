@@ -13,6 +13,41 @@ atom_decoder = ['H', 'C', 'N', 'O', 'F']
 atom_decoder_int = [1, 6, 7, 8, 9]
 
 
+class Histogram_discrete:
+    def __init__(self, name='histogram'):
+        self.name = name
+        self.bins = {}
+
+    def add(self, elements):
+        for e in elements:
+            if e in self.bins:
+                self.bins[e] += 1
+            else:
+                self.bins[e] = 1
+
+    def normalize(self):
+        total = 0.
+        for key in self.bins:
+            total += self.bins[key]
+        for key in self.bins:
+            self.bins[key] = self.bins[key] / total
+
+    def plot(self, save_path=None):
+        width = 1  # the width of the bars
+        fig, ax = plt.subplots()
+        x, y = [], []
+        for key in self.bins:
+            x.append(key)
+            y.append(self.bins[key])
+
+        ax.bar(x, y, width)
+        plt.title(self.name)
+        if save_path is not None:
+            plt.savefig(save_path)
+        else:
+            plt.show()
+        plt.close()
+
 if __name__ == "__main__":
     net = AtomFlow(
         hidden_dim=32,
@@ -36,7 +71,9 @@ if __name__ == "__main__":
     validity = 0
     valid_smiles = []
 
-    for batch_data in test_loader:
+    hist = Histogram_discrete()
+
+    for idx, batch_data in enumerate(train_loader):
 
         pos = batch_data.pos
         mask = batch_data.mask
@@ -53,8 +90,7 @@ if __name__ == "__main__":
 
         for idx in range(pos.shape[0]):
             size = mask[idx].to(torch.long).sum()
-            atom_decoder_int = [1, 6, 7, 8, 9]
-            atom_ty =[atom_decoder_int[i] for i in atoms_types[idx, :size]]
+            atom_ty =[atom_decoder[i] for i in atoms_types[idx, :size]]
 
             pos_t = pos[idx, :size].tolist()
 

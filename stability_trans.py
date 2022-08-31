@@ -4,11 +4,12 @@ import matplotlib.pyplot as plt
 from rdkit import Chem
 from rdkit.Chem import Draw
 from models.argmax.atom import AtomFlow
-from models.pos.flow import TransformerCoorFlow
+from models.pos.flow import TransformerCoorFlow, TransformerCoorFlowV2
 from larsflow.distributions import ResampledGaussian
 import torch
 import numpy as np
 from einops import rearrange
+import cairosvg
 from xyz2mol.xyz2mol import xyz2mol
 
 atom_decoder = ['N/A', 'H', 'C', 'N', 'O', 'F']
@@ -44,20 +45,23 @@ if __name__ == "__main__":
 
     # pos = batch.pos
     # mask = batch.mask
-    batch_size = 100
+    batch_size = 1000
 
-    coor_net = TransformerCoorFlow(
-        hidden_dim=32,
-        num_layers_transformer=4,
-        block_size=6,
+    coor_net = TransformerCoorFlowV2(
+        hidden_dim=128,
+        num_layers_transformer=8,
+        block_size=4,
         conv1x1=False,
         conv1x1_node_wise=False,
         batch_norm=False,
-        partition_size=(2,1),
+        act_norm=False,
+        squeeze=True,
+        squeeze_step=3,
+        partition_size=(1,6),
     )
     
     coor_net.load_state_dict(
-        torch.load("outputs/model_checkpoint_2yd53373_100.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_gy9jdedq_250.pt", map_location="cpu")['model_state_dict']
     )
 
     print("Loaded TransformerCoorFlow model...")
@@ -92,7 +96,7 @@ if __name__ == "__main__":
     )
 
     net.load_state_dict(
-        torch.load("outputs/model_checkpoint_3pchowk4_50.pt", map_location="cpu")['model_state_dict']
+        torch.load("outputs/model_checkpoint_3pchowk4_200.pt", map_location="cpu")['model_state_dict']
     )
 
     print("Loaded AtomFlow model...")
@@ -154,9 +158,14 @@ if __name__ == "__main__":
     # print(invalid_idx)
     # print(pos[invalid_idx].shape, pos[invalid_idx])
     
-    # plot = Draw.MolsToGridImage(valid_mols, molsPerRow=4, subImgSize=(500, 500), legends=valid_smiles)
+    plot = Draw.MolsToGridImage(valid_mols, molsPerRow=4, subImgSize=(500, 500), legends=valid_smiles, useSVG=True)
     # number = np.random.randint(0, 10000)
-    # plot.save(f"local_interpolcation_{number}.png")
+    
+    filename = "test.svg"
+
+    with open(filename, 'w') as f:
+        f.write(plot)
+
 
     pprint(valid_smiles)
     print(valid * 1.0 / batch_size)

@@ -1,5 +1,5 @@
 import argparse
-from utils import CoorExp, VertExp, TwoStageCoorExp, ResCoorExp, TransCoorExp, TransCoorFixedExp, NSFCoorFixedExp
+from utils import CoorExp, VertExp, TwoStageCoorExp, ResCoorExp, TransCoorExp, TransCoorFixedExp, NSFCoorFixedExp, ConditionalTransCoorFixedExp
 import torch
 from torch import batch_norm, nn
 
@@ -266,4 +266,47 @@ if __name__ == "__main__":
         )
 
         exp = NSFCoorFixedExp(config=config)
+    if args.type  == "cond":
+        config = dict(
+            epochs=args.epochs,
+            type=args.type,
+            batch_size=args.batch_size,
+            optimiser=args.optimiser,
+            learning_rate=args.lr,
+            weight_decay=args.weight_decay,
+            scheduler=args.scheduler,
+            scheduler_gamma=args.scheduler_gamma,
+            scheduler_step=args.scheduler_step,
+            dataset="MQM9",
+            architecture="Flow",
+            upload=args.upload,
+            upload_interval=args.upload_interval,
+            hidden_dim=args.hidden_dim,
+            block_size=args.block_size,
+            base=args.base,
+            loadfrom=args.loadfrom,
+            num_layers_transformer=args.num_layers,
+            autocast=args.autocast != 0,
+            no_opt=args.no_opt == 0,
+            conv1x1=args.conv1x1 == 1,
+            conv1x1_node_wise=args.conv1x1_node_wise == 1,
+            partition_size=args.partition_size,
+            size_constraint=args.size_constraint,
+            batch_norm=args.batch_norm == 1,
+            act_norm=args.act_norm == 1,
+            scale=args.scale == 1,
+            two_stage=args.two_stage == 1,
+            classifier=args.classifier,
+            warmup_epochs=args.warmup_epochs,
+            two_stage_step=args.two_stage_step,
+            two_stage_mode=args.two_stage_mode,
+            squeeze=args.squeeze == 1,
+            squeeze_step=args.squeeze_step,
+            lr_reset=args.lr_reset == 1,
+            warm_up=args.warm_up == 1,
+            warm_up_iters=args.warm_up_iters,
+        )
+
+        exp = ConditionalTransCoorFixedExp(config=config)
+        
     exp.train()

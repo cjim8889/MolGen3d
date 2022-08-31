@@ -31,7 +31,7 @@ def create_model(config):
             squeeze_step=config['squeeze_step'],
         )
         model = model.to(device)
-    elif config['flow'] == "TransformerCoorFlowFixed":
+    elif config['flow'] == "TransformerCoorFlowFixed" or config['flow'] == "ConditionalTransformerCoorFlow":
         model = config['model'](
             hidden_dim=config['hidden_dim'], 
             block_size=config['block_size'], 
@@ -40,7 +40,6 @@ def create_model(config):
             partition_size=(1, config['partition_size']),
             num_layers_transformer=config['num_layers_transformer'],
             conv1x1_node_wise=config['conv1x1_node_wise'],
-            batch_norm=config['batch_norm'],
             act_norm=config['act_norm'],
             squeeze=config['squeeze'],
             squeeze_step=config['squeeze_step'],
