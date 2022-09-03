@@ -195,6 +195,7 @@ if __name__ == "__main__":
             no_opt=args.no_opt == 0,
             squeeze=args.squeeze == 1,
             squeeze_step=args.squeeze_step,
+            lr_reset=args.lr_reset == 1,
         )
 
         exp = TransCoorExp(config=config)
